@@ -1,0 +1,21 @@
+:root {
+    --v-theme-surface: 255,255,255;
+}
+
+.v-data-table__tr {
+    border:1px dotted black;
+    padding: 3px;
+}
+
+.v-data-table__tr--clickable {
+    cursor:pointer !important
+}
+
+.v-data-table .v-table__wrapper>table>thead>tr>td,
+.v-data-table .v-table__wrapper>table>thead>tr th,
+.v-data-table .v-table__wrapper>table tbody>tr>td,
+.v-data-table .v-table__wrapper>table tbody>tr th {
+background:rgb(var(--v-theme-surface)) !important
+}
+ 
+
