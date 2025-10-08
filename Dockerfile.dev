@@ -1,7 +1,11 @@
 FROM node:18.19.0
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+#RUN npm install
+RUN npm install --legacy-peer-deps
+#npm install -g npm-check-updates
+#ncu -u
+#npm install
 #COPY . .
 EXPOSE 5173
 # Comando por defecto: ejecutar el servidor de desarrollo de Vite
