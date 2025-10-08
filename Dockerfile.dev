@@ -1,0 +1,8 @@
+FROM node:18.19.0
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+#COPY . .
+EXPOSE 5173
+# Comando por defecto: ejecutar el servidor de desarrollo de Vite
+CMD ["npm", "run", "dev", "--", "--host"]
