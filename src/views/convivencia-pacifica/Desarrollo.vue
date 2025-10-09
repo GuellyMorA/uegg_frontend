@@ -1283,61 +1283,61 @@ modificacion                     -->
                             <!--adjuntar archivos-->
                             <v-container>
                                 <v-form @submit.prevent="uploadFile">
-                                <v-file-input
-                                    label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
-                                    v-model="selectedFile"
-                                    accept="*/*"
-                                    prepend-icon="mdi-paperclip"
-                                    outlined
-                                    dense
-                                ></v-file-input>
+                                    <v-file-input
+                                        label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
+                                        v-model="selectedFile"
+                                        accept="*/*"
+                                        prepend-icon="mdi-paperclip"
+                                        outlined
+                                        dense
+                                    ></v-file-input>
 
-                                <v-btn
-                                    :disabled="!selectedFile"
-                                    color="primary"
-                                    class="mt-4"
-                                    type="submit"
-                                >
-                                    Subir archivo
-                                </v-btn>
+                                    <v-btn
+                                        :disabled="!selectedFile"
+                                        color="primary"
+                                        class="mt-4"
+                                        type="submit"
+                                    >
+                                        Subir archivo
+                                    </v-btn>
 
-                                <v-alert
-                                    v-if="uploadMessage"
-                                    type="success"
-                                    class="mt-3"
-                                >
-                                    {{ uploadMessage }}
-                                </v-alert>
+                                    <v-alert
+                                        v-if="uploadMessage"
+                                        type="success"
+                                        class="mt-3"
+                                    >
+                                        {{ uploadMessage }}
+                                    </v-alert>
                                 </v-form>
                             </v-container>
 
                             <v-container>
                                 <v-form @submit.prevent="uploadFile">
-                                <v-file-input
-                                    label="Adjuntar su diagnóstico de convivencia pacifica en pofmato pdf"
-                                    v-model="selectedFile"
-                                    accept="*/*"
-                                    prepend-icon="mdi-paperclip"
-                                    outlined
-                                    dense
-                                ></v-file-input>
+                                    <v-file-input
+                                        label="Adjuntar su diagnóstico de convivencia pacifica en pofmato pdf"
+                                        v-model="selectedFile"
+                                        accept="*/*"
+                                        prepend-icon="mdi-paperclip"
+                                        outlined
+                                        dense
+                                    ></v-file-input>
 
-                                <v-btn
-                                    :disabled="!selectedFile"
-                                    color="primary"
-                                    class="mt-4"
-                                    type="submit"
-                                >
-                                    Subir archivo
-                                </v-btn>
+                                    <v-btn
+                                        :disabled="!selectedFile"
+                                        color="primary"
+                                        class="mt-4"
+                                        type="submit"
+                                    >
+                                        Subir archivo
+                                    </v-btn>
 
-                                <v-alert
-                                    v-if="uploadMessage"
-                                    type="success"
-                                    class="mt-3"
-                                >
-                                    {{ uploadMessage }}
-                                </v-alert>
+                                    <v-alert
+                                        v-if="uploadMessage"
+                                        type="success"
+                                        class="mt-3"
+                                    >
+                                        {{ uploadMessage }}
+                                    </v-alert>
                                 </v-form>
                             </v-container>
 
