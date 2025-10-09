@@ -4,7 +4,7 @@ const apiUrl = import.meta.env;
 
 class AuthService {
   
-  login(form){
+  /* login(form){
     return http2({
       method:'post',
       url: `/auth`,
@@ -18,21 +18,29 @@ class AuthService {
     .catch((error) => {
         return error;
     });
-
-    // return http.create({
-    //   withCredentials: true,
-    //   method:'post',
-    //   url: `/auth`,
-    //   baseURL: 'https://api.infraestructura.sie.gob.bo/api',
-    //   data: form,
-    //   headers: {
-    //     "Content-Type": "application/json"
-    //   },
-    // })
-    // .patch((error) => {
-    //     return error;
-    // });
+  } */
+  login(form) {
+    return http2({
+      method: 'post',
+      url: `/auth`,
+      baseURL: apiUrl.VITE_API_URL_AUTH,
+      data: form,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    .then((res) => {
+      // Guarda el token recibido
+      if (res.data && res.data.token) {
+        localStorage.setItem('token', res.data.token);
+      }
+      return res;
+    })
+    .catch((error) => {
+      return error;
+    });
   }
+
  
 }
   
