@@ -131,8 +131,8 @@ onMounted(async() => {
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
         findInstitucionEducativa();
-        //findMiembrosComisionConstruccion();
-        //findActividadesPromocion();
+        findMiembrosComisionConstruccion();
+        findActividadesPromocion();
         username = localStorage.getItem('username') ;
         console.log("============");
       //  form.value.vigenciaAprobacion=99;
@@ -604,6 +604,7 @@ const save = async () => {
             }
 
            // ueggPcpaMiembroComision
+           //console.log("payload3_alkey", payload3);
             save3 = ConvivenciaPacifica.createMiembroComision(payload3).then((res) => {
                 if(res.status === 201){
                     toast.info('Registro guardado correctamente', {
