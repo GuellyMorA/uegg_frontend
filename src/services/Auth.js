@@ -33,8 +33,7 @@ class AuthService {
     //     return error;
     // });
   }
-
  
-  }
+}
   
-  export default new AuthService();
+export default new AuthService();
