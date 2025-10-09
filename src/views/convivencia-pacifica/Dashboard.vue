@@ -1,92 +1,94 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useTheme } from 'vuetify';
-//import Pivot from '@/components/Pivot.vue'
+    import { ref, computed } from "vue";
+    import { useTheme } from 'vuetify';
+    import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
+    //import Pivot from '@/components/Pivot.vue'
 
-const theme = useTheme();
-const primary = theme.current.value.colors.primary;
-const error = theme.current.value.colors.error;
-const warning = theme.current.value.colors.warning;
-const secondary = theme.current.value.colors.secondary;
-const success = theme.current.value.colors.success;
-const info = theme.current.value.colors.info;
-const surface = theme.current.value.colors.surface;
-const lightprimary = theme.current.value.colors.lightprimary;
-const lilac = "#ccc3ff";
-const coffee = "#ce9166";
-const chartOptions = computed(() => {
-    return {
-        series: [5368, 3500, 4106],
-        labels: [
-            "Movilización social", 
-            "Fomento al desarrollo de habilidades y práctica de valores", 
-            "Capacitación", 
-            "Medidas de seguridad en la infraestructura", 
-            "Normas de convivencia en la unidad unidadEducativa", 
-            "Promoción de la participación de las y los estudiantes", 
-            "Gestión y articulación con la comunidad educativa", 
-            "Acción comunal", 
-            "Acciones para reducción de riesgos en el contexto y en la unidad educativa"
-        ],
-        chart: {
-            height: 170,
-            type: "donut",
-            fontFamily: "Plus Jakarta Sans', sans-serif",
-            foreColor: "#c6d1e9",
-        },
+    const theme = useTheme();
+    const primary = theme.current.value.colors.primary;
+    const error = theme.current.value.colors.error;
+    const warning = theme.current.value.colors.warning;
+    const secondary = theme.current.value.colors.secondary;
+    const success = theme.current.value.colors.success;
+    const info = theme.current.value.colors.info;
+    const surface = theme.current.value.colors.surface;
+    const lightprimary = theme.current.value.colors.lightprimary;
+    const lilac = "#ccc3ff";
+    const coffee = "#ce9166";
+    const chartOptions = computed(() => {
+        return {
+            series: [5368, 3500, 4106],
+            labels: [
+                "Movilización social", 
+                "Fomento al desarrollo de habilidades y práctica de valores", 
+                "Capacitación", 
+                "Medidas de seguridad en la infraestructura", 
+                "Normas de convivencia en la unidad unidadEducativa", 
+                "Promoción de la participación de las y los estudiantes", 
+                "Gestión y articulación con la comunidad educativa", 
+                "Acción comunal", 
+                "Acciones para reducción de riesgos en el contexto y en la unidad educativa"
+            ],
+            chart: {
+                height: 170,
+                type: "donut",
+                fontFamily: "Plus Jakarta Sans', sans-serif",
+                foreColor: "#c6d1e9",
+            },
 
-        tooltip: {
-            theme: "dark",
-            fillSeriesColor: false,
-        },
+            tooltip: {
+                theme: "dark",
+                fillSeriesColor: false,
+            },
 
-        colors: [primary, error, warning, success, secondary, info, lightprimary, lilac, coffee],
-        dataLabels: {
-            enabled: false,
-        },
+            colors: [primary, error, warning, success, secondary, info, lightprimary, lilac, coffee],
+            dataLabels: {
+                enabled: false,
+            },
 
-        legend: {
-            show: false,
-        },
+            legend: {
+                show: false,
+            },
 
-        stroke: {
-            show: false,
-        },
-        responsive: [
-            {
-                breakpoint: 991,
-                options: {
-                    chart: {
-                        width: 150,
+            stroke: {
+                show: false,
+            },
+            responsive: [
+                {
+                    breakpoint: 991,
+                    options: {
+                        chart: {
+                            width: 150,
+                        },
                     },
                 },
-            },
-        ],
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: '70%',
-                    background: "none",
-                    labels: {
-                        show: true,
-                        name: {
+            ],
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '70%',
+                        background: "none",
+                        labels: {
                             show: true,
-                            fontSize: "12px",
-                            color: undefined,
-                            offsetY: 5,
-                        },
-                        value: {
-                            show: false,
-                            color: "#98aab4",
+                            name: {
+                                show: true,
+                                fontSize: "12px",
+                                color: undefined,
+                                offsetY: 5,
+                            },
+                            value: {
+                                show: false,
+                                color: "#98aab4",
+                            },
                         },
                     },
                 },
             },
-        },
 
-    };
-});
-const Chart = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+        };
+    });
+    const Chart = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
 
 </script>
 

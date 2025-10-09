@@ -151,16 +151,20 @@ class ConvivenciaPacificaService {
      return  http.get(`/ueggPcpaActividadesPromocionList/${data}`,).catch((error) => {
          return error;
      });
- 
-   }
+  }
 
   findActividadesEjecutadas(data){
      return  http.get(`/ueggPcpaActividadesEjecutadasList/${data}`,).catch((error) => {
          return error;
      });
- 
-   }
-
+  }
+  //Conviviencia pacifica y arminica PCPA reposres
+  //PCPA aprobados
+  ueggPcpaConstruccion(){
+     return  http.get(`/ueggPcpaConstruccion/count/true`,).catch((error) => {
+         return error;
+     });
+  }
 
 }
 
