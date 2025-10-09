@@ -131,17 +131,18 @@ onMounted(async() => {
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
         findInstitucionEducativa();
-        findMiembrosComisionConstruccion();
-        findActividadesPromocion();
+        //findMiembrosComisionConstruccion();
+        //findActividadesPromocion();
         username = localStorage.getItem('username') ;
+        console.log("HOLA ESTAS AQUI");
       //  form.value.vigenciaAprobacion=99;
       //  form.value.fecha='01/01/2027';
       //  form.value.fechaAprobacion='01/01/2028';
   
     }
 }); 
-
-const findInstitucionEducativa = async () => {
+// Función para validar el formulario de unida educativa llenando sus campos automaticamente 
+/* const findInstitucionEducativa = async () => {
     console.log(form.value.sie);
     if(String(form.value.sie).length === 8){
         const res = await ConvivenciaPacifica.findInstitucionEducativa(form.value.sie);
@@ -171,7 +172,42 @@ const findInstitucionEducativa = async () => {
         form.value.modalidad = '';
         form.value.director = '';
     }
-}; 
+};  */
+// Función mejorada sin arrary para validar el formulario de unida educativa llenando sus campos automaticamente 
+const findInstitucionEducativa = async () => {
+    console.log(form.value.sie);
+    if (String(form.value.sie).length === 8) {
+        const res = await ConvivenciaPacifica.findInstitucionEducativa(form.value.sie);
+        console.log("res", res);
+
+        const data = res.data; // ← es un objeto, no array
+        if (data && data.id) {
+        form.value.departamentoId = data.departamento_codigo;
+        form.value.departamentoNombre = data.departamento;
+        form.value.municipioId = data.municipio_codigo;  
+        form.value.municipioNombre = data.municipio;
+        form.value.unidadEducativa = data.institucioneducativa;
+        form.value.nivel = data.niveles_abrv;
+        form.value.modalidad = data.dependencia;
+        form.value.director = data.director;
+        find.value = true;
+        institucionEducativa.value = data;
+        //console.log(data, form.value.sie.length, res);
+        }
+    } else {
+        institucionEducativa.value = null;
+        find.value = false;
+        form.value.departamentoId = null;
+        form.value.departamentoNombre = '';
+        form.value.municipioId = null;
+        form.value.municipioNombre = '';
+        form.value.unidadEducativa = '';
+        form.value.nivel = '';
+        form.value.modalidad = '';
+        form.value.director = '';
+    }
+};
+
 
 const findMiembrosComisionConstruccion = async () => {
     console.log(form.value.sie);

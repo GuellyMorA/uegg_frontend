@@ -100,22 +100,25 @@ class ConvivenciaPacificaService {
     //   return error;
     // }
 
-  findInstitucionEducativa(id){
-    
-    //const user = JSON.parse(localStorage.getItem('user'));
+  findInstitucionEducativa(id) {
+    // Recuperamos el objeto del usuario desde localStorage
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    // Tomamos el token del objeto
+    const token = user?.token;
+
     return http2({
-      method:'get',
+      method: 'get',
       url: `/institucioneducativa/${id}`,
-      baseURL: apiUrl.VITE_API_URL_SIE,
+      baseURL: apiUrl.VITE_API_URL_API,
       headers: {
         "Content-Type": "application/json",
-        'Authorization': ""
+        "Authorization": `Bearer ${token}` // ← Aquí va el token
       },
     })
     .catch((error) => {
-        return error;
+      return error;
     });
-
   }
 
   getIndicadorTipo(){
