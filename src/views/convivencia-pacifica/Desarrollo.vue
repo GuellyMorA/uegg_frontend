@@ -1280,68 +1280,68 @@ modificacion                     -->
                                 </div>
                             </v-col>
 
-<!--adjuntar archivos-->
-  <v-container>
-    <v-form @submit.prevent="uploadFile">
-      <v-file-input
-        label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
-        v-model="selectedFile"
-        accept="*/*"
-        prepend-icon="mdi-paperclip"
-        outlined
-        dense
-      ></v-file-input>
+                            <!--adjuntar archivos-->
+                            <v-container>
+                                <v-form @submit.prevent="uploadFile">
+                                <v-file-input
+                                    label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
+                                    v-model="selectedFile"
+                                    accept="*/*"
+                                    prepend-icon="mdi-paperclip"
+                                    outlined
+                                    dense
+                                ></v-file-input>
 
-      <v-btn
-        :disabled="!selectedFile"
-        color="primary"
-        class="mt-4"
-        type="submit"
-      >
-        Subir archivo
-      </v-btn>
+                                <v-btn
+                                    :disabled="!selectedFile"
+                                    color="primary"
+                                    class="mt-4"
+                                    type="submit"
+                                >
+                                    Subir archivo
+                                </v-btn>
 
-      <v-alert
-        v-if="uploadMessage"
-        type="success"
-        class="mt-3"
-      >
-        {{ uploadMessage }}
-      </v-alert>
-    </v-form>
-  </v-container>
+                                <v-alert
+                                    v-if="uploadMessage"
+                                    type="success"
+                                    class="mt-3"
+                                >
+                                    {{ uploadMessage }}
+                                </v-alert>
+                                </v-form>
+                            </v-container>
 
-   <v-container>
-    <v-form @submit.prevent="uploadFile">
-      <v-file-input
-        label="Adjuntar su diagnóstico de convivencia pacifica en pofmato pdf"
-        v-model="selectedFile"
-        accept="*/*"
-        prepend-icon="mdi-paperclip"
-        outlined
-        dense
-      ></v-file-input>
+                            <v-container>
+                                <v-form @submit.prevent="uploadFile">
+                                <v-file-input
+                                    label="Adjuntar su diagnóstico de convivencia pacifica en pofmato pdf"
+                                    v-model="selectedFile"
+                                    accept="*/*"
+                                    prepend-icon="mdi-paperclip"
+                                    outlined
+                                    dense
+                                ></v-file-input>
 
-      <v-btn
-        :disabled="!selectedFile"
-        color="primary"
-        class="mt-4"
-        type="submit"
-      >
-        Subir archivo
-      </v-btn>
+                                <v-btn
+                                    :disabled="!selectedFile"
+                                    color="primary"
+                                    class="mt-4"
+                                    type="submit"
+                                >
+                                    Subir archivo
+                                </v-btn>
 
-      <v-alert
-        v-if="uploadMessage"
-        type="success"
-        class="mt-3"
-      >
-        {{ uploadMessage }}
-      </v-alert>
-    </v-form>
-  </v-container>
+                                <v-alert
+                                    v-if="uploadMessage"
+                                    type="success"
+                                    class="mt-3"
+                                >
+                                    {{ uploadMessage }}
+                                </v-alert>
+                                </v-form>
+                            </v-container>
 
-<!--fin-->
+                            <!--fin-->
                             <v-col cols="12" md="12">
                                 <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
                                     <span class="bg-surface position-relative text-subtitle-1 text-grey100">Declaración jurada</span>
