@@ -1,7 +1,8 @@
 <script setup lang="ts">
-    import { ref, computed } from "vue";
+    import { ref, computed, onMounted } from "vue";
     import { useTheme } from 'vuetify';
     import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
+    import { toast } from 'vue3-toastify';
     //import Pivot from '@/components/Pivot.vue'
 
     const theme = useTheme();
@@ -89,7 +90,30 @@
     });
     const Chart = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-
+  
+    
+    const aprobados = ref(0);
+    
+    onMounted(async () => {
+    try {
+        const data = await ConvivenciaPacifica.ueggPcpaConstruccion();
+        aprobados.value = data.total_true || 0;
+    } catch (error) {
+        toast.error('Error al cargar los datos del panel', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT
+        });
+    }
+    });
+    /* onMounted(async () => {
+        try {
+            const data = await ConvivenciaPacifica.ueggPcpaConstruccion();
+            console.log('Datos:', data);
+        } catch (error) {
+            console.error('Error cargando:', error);
+        }
+    }); */
+    
 </script>
 
 <template>
@@ -109,7 +133,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">0</h3>
+                                    <h3 class="text-h4">{{ aprobados }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
