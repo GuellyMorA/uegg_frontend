@@ -134,13 +134,14 @@ onMounted(async() => {
         //findMiembrosComisionConstruccion();
         //findActividadesPromocion();
         username = localStorage.getItem('username') ;
-        console.log("HOLA ESTAS AQUI");
+        console.log("============");
       //  form.value.vigenciaAprobacion=99;
       //  form.value.fecha='01/01/2027';
       //  form.value.fechaAprobacion='01/01/2028';
   
     }
-}); 
+});
+
 // Función para validar el formulario de unida educativa llenando sus campos automaticamente 
 /* const findInstitucionEducativa = async () => {
     console.log(form.value.sie);
@@ -175,7 +176,7 @@ onMounted(async() => {
 };  */
 // Función mejorada sin arrary para validar el formulario de unida educativa llenando sus campos automaticamente 
 const findInstitucionEducativa = async () => {
-    console.log(form.value.sie);
+    //console.log(form.value.sie);
     if (String(form.value.sie).length === 8) {
         const res = await ConvivenciaPacifica.findInstitucionEducativa(form.value.sie);
         console.log("res", res);
@@ -554,7 +555,7 @@ const save = async () => {
         usu_cre: username,
         fec_cre: new Date()
     }
-       //  ueggPcpaConstruccion
+    //  ueggPcpaConstruccion
     const save2 = await ConvivenciaPacifica.createContruccion(payload2).then((res) => {
         if(res.status === 201){
             toast.info('Registro guardado correctamente', {
