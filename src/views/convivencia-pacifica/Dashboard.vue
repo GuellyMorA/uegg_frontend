@@ -91,13 +91,16 @@
     const Chart = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
   
-    
+    // variable de PCPA aprobados
     const aprobados = ref(0);
+    // variable de PCPA socializados
+    const solicitudes = ref(0);
 
     onMounted(async () => {
         try {
             const response = await ConvivenciaPacifica.ueggPcpaConstruccion();
             aprobados.value = Number(response.data.total_true) || 0;
+            solicitudes.value = Number(response.data.total_false) || 0;
             //console.log('Aprobados:', aprobados.value);
         } catch (error) {
             //console.error('Error al cargar los datos del panel:', error);
@@ -155,7 +158,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">0</h3>
+                                    <h3 class="text-h4">{{ solicitudes }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
