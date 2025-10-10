@@ -93,26 +93,20 @@
   
     
     const aprobados = ref(0);
-    
+
     onMounted(async () => {
-    try {
-        const data = await ConvivenciaPacifica.ueggPcpaConstruccion();
-        aprobados.value = data.total_true || 0;
-    } catch (error) {
-        toast.error('Error al cargar los datos del panel', {
-        autoClose: 3000,
-        position: toast.POSITION.TOP_RIGHT
-        });
-    }
-    });
-    /* onMounted(async () => {
         try {
-            const data = await ConvivenciaPacifica.ueggPcpaConstruccion();
-            console.log('Datos:', data);
+            const response = await ConvivenciaPacifica.ueggPcpaConstruccion();
+            aprobados.value = Number(response.data.total_true) || 0;
+            //console.log('Aprobados:', aprobados.value);
         } catch (error) {
-            console.error('Error cargando:', error);
+            //console.error('Error al cargar los datos del panel:', error);
+            toast.error('Error al cargar los datos del panel', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT
+            });
         }
-    }); */
+    });
     
 </script>
 

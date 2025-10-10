@@ -159,59 +159,21 @@ class ConvivenciaPacificaService {
      });
   }
   //Conviviencia pacifica y arminica PCPA reposres
-  //PCPA aprobados
-  /* ueggPcpaConstruccion(){
+  //PCPA aprobados con cache
+  ueggPcpaConstruccion(){
     return  http.get(`/ueggPcpaConstruccion/count/true`).catch((error) => {
       return error;
     });
-  } */
-  async ueggPcpaConstruccion() {
-    try {
-      const res = await http.get('/ueggPcpaConstruccion/count/true');
-      return res.data; // devuelve solo los datos
-    } catch (error) {
-      console.error('Error en ueggPcpaConstruccion():', error.message || error);
-      throw error; // lo lanzas para manejarlo desde el componente
-    }
   }
-
-  async ueggPcpaConstruccion() {
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    // Tomamos el token del objeto
-    const token = user?.token;
-
-    return http2({
-      method: 'get',
-      url: `/ueggPcpaConstruccion/count/true`,
-      baseURL: apiUrl.VITE_API_URL,
+  //sin cache
+  /* ueggPcpaConstruccion() {
+    return http.get(`/ueggPcpaConstruccion/count/true`, {
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` // ← Aquí va el token
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
-    })
-    .catch((error) => {
-      return error;
-    });
-  }
-
-  /* findInstitucionEducativa(id) {
-    // Recuperamos el objeto del usuario desde localStorage
-    const user = JSON.parse(localStorage.getItem('user'));
-
-    // Tomamos el token del objeto
-    const token = user?.token;
-
-    return http2({
-      method: 'get',
-      url: `/institucioneducativa/${id}`,
-      baseURL: apiUrl.VITE_API_URL_API,
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` // ← Aquí va el token
-      },
-    })
-    .catch((error) => {
+      params: { t: Date.now() } // evita cache agregando un parámetro único
+    }).catch((error) => {
       return error;
     });
   } */
