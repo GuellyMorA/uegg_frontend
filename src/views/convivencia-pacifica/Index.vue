@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { useRouter } from "vue-router";
 const router = useRouter();
-//const manualLink = ref( './manuales/PCPA.pdf'); // Ruta al archivo PDF en la carpeta public
+const manualLink = ref( './manuales/PCPA.pdf'); // Ruta al archivo PDF en la carpeta public todavia sin funcionalidad de descarga
 
 const descargarPDF = async (filename) => {
   try {
@@ -91,19 +91,17 @@ const descargarPDF = async (filename) => {
                 <img src="@/assets/man-working-on-laptop-54d5d789.png" class="bg-img-1 mt-sm-0 mt-sm-n10" data-v-81e7cbfb="">
             </v-card>
         </v-col>
-                    <v-row class="p-0 py-0 px-4">
-                <a :href="manualLink" target="_blank" rel="noopener noreferrer" class="download-link">
-                    <img src="@/assets/images/pdf.png" height="35" alt="user" class="pdf-icon">
-                </a>
-          
-             </v-row>
-
-<template>
-  <div>
-    <v-btn @click="descargarPDF('archivo.pdf')">Descargar PDF</v-btn>
-  </div>
-</template>
-<!--        <v-col cols="12" md="12"> 
+        <v-row class="p-0 py-0 px-4">
+            <a :href="manualLink" target="_blank" rel="noopener noreferrer" class="download-link">
+                <img src="@/assets/images/pdf.png" height="35" alt="user" class="pdf-icon">
+            </a>
+        </v-row>
+        <template>
+            <div>
+                <v-btn @click="descargarPDF('archivo.pdf')">Descargar PDF</v-btn>
+            </div>
+        </template>
+        <!--<v-col cols="12" md="12"> 
             <UiParentCard title="Herramientas "> 
                 <div class=""><p class="text-body-1">Normativa</p></div>
                 <div class=""><p class="text-body-1">Formulario de registro de construcción del PCPA</p></div>
