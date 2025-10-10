@@ -160,8 +160,8 @@ class ConvivenciaPacificaService {
   }
   //Conviviencia pacifica y arminica PCPA reposres
   //PCPA aprobados con cache
-  ueggPcpaConstruccion(){
-    return  http.get(`/ueggPcpaConstruccion/count/true`).catch((error) => {
+  convivienciaPacificaArmonicaDashboardCounts(){
+    return  http.get(`/convivienciaPacificaArmonicaDashboardCounts`).catch((error) => {
       return error;
     });
   }

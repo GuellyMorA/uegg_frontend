@@ -95,12 +95,15 @@
     const aprobados = ref(0);
     // variable de PCPA socializados
     const solicitudes = ref(0);
+    //Actividades de promoción
+    const actividadesPromocion = ref(0);
 
     onMounted(async () => {
         try {
-            const response = await ConvivenciaPacifica.ueggPcpaConstruccion();
+            const response = await ConvivenciaPacifica.convivienciaPacificaArmonicaDashboardCounts();
             aprobados.value = Number(response.data.total_true) || 0;
             solicitudes.value = Number(response.data.total_false) || 0;
+            actividadesPromocion.value = Number(response.data.actividades_promocion_total) || 0;
             //console.log('Aprobados:', aprobados.value);
         } catch (error) {
             //console.error('Error al cargar los datos del panel:', error);
@@ -293,7 +296,7 @@
                     <v-row>
                         <v-col cols="6" sm="8">
                             <div class="mt-6">
-                                <h3 class="text-h4">0</h3>
+                                <h3 class="text-h4">{{ actividadesPromocion }}</h3>
                                 <div class="align-center mt-6 ml-1">
                                     <h6 class="text-subtitle-2 text-muted pl-5">
                                         <v-icon icon="mdi mdi-checkbox-blank-circle" class="mr-1" size="10" color="primary"></v-icon> Movilización social
