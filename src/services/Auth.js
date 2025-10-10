@@ -31,9 +31,9 @@ class AuthService {
     })
     .then((res) => {
       // Guarda el token recibido
-      if (res.data && res.data.token) {
+      /* if (res.data && res.data.token) {
         localStorage.setItem('token', res.data.token);
-      }
+      } */
       return res;
     })
     .catch((error) => {
