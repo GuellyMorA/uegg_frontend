@@ -109,7 +109,8 @@ class ConvivenciaPacificaService {
       baseURL: apiUrl.VITE_API_URL_SIE,
       headers: {
         "Content-Type": "application/json",
-        'Authorization': ""
+      'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvX2lkIjo5MjQ5ODEyMiwiaWF0IjoxNjY4OTQ5OTAwfQ.ikRwPaCK379wwZgujPX1l1EGodkbSVdPI9RsrXRJQFo",
+       
       },
     })
     .catch((error) => {
@@ -118,6 +119,9 @@ class ConvivenciaPacificaService {
 
   }
 
+
+
+  
   getIndicadorTipo(){
     return http.get(`/ueggPcpaIndicadoresTipo`).catch((error) => {
         return error;

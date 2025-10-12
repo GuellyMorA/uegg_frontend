@@ -17,8 +17,8 @@ import axios from 'axios';
 const apiUrl = import.meta.env;
 
 axios.defaults.baseURL = apiUrl.VITE_API_URL;
-axios.defaults.headers.common['Access-Control-Allow-Methods'] = 'POST, PUT, GET, PATCH, DELETE';
-axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
+//axios.defaults.headers.common['Access-Control-Allow-Methods'] = 'POST, PUT, GET, PATCH, DELETE';
+//axios.defaults.headers.common['Access-Control-Allow-Origin'] = '*';
 axios.defaults.headers.common['Accept'] = 'application/json, text/plain, text/html, application/xhtml+xml, application/xml, image/png, */*';
 axios.defaults.headers.common['Authorization'] = apiUrl.VITE_API_URL_TOKEN;
 // axios.defaults.headers.common['Authorization'] = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvX2lkIjo5MjQ5ODEyMiwiaWF0IjoxNzEyMjA1OTY5fQ.LsnO4syEI1WT-BDL1qxjPicRHU__XUeHJyGCS5gAZCo';

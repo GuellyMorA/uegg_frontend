@@ -5,6 +5,8 @@ import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
 import axios from 'axios';
+import Auth from '@/services/Auth'; 
+
 // import { useNavbarStore } from '@/stores/navbar';
 // const store = useNavbarStore();  
 // store.setPath('/convivencia/pacifica');
@@ -126,7 +128,80 @@ const sieRules = [
 let username: string | null ;
 
 
+// --- Variables de Estado Nuevas ---
+const SIE_CONSULTA = '12345678'; 
+const registroExiste = ref(false);
+const isLoading = ref(true);
+const userSie = ref(localStorage.getItem('userSie') || SIE_CONSULTA); // Usar el SIE del usuario logueado
+// --- Fin Variables de Estado Nuevas ---
+
+// --- Funciones Nuevas ---
+
+/**
+ * Función para simular la consulta al endpoint de existencia del registro.
+ */
+const checkRegistroExistence = async () => {
+    isLoading.value = true;
+    
+    // **AQUÍ DEBES REEMPLAZAR CON TU LLAMADA REAL AL ENDPOINT**
+    // Ejemplo de llamada real:
+    // const token = localStorage.getItem('authToken'); 
+    // const response = await ApiService.checkRegistro(userSie.value, token);
+    
+    try {
+        // --- SIMULACIÓN DE RESPUESTA ---
+        await new Promise(resolve => setTimeout(resolve, 800)); // Simula latencia
+        
+        // La condición es: si el endpoint encuentra el SIE=12345678 (o el SIE del usuario), el registro EXISTE.
+        // Aquí simulamos que NO existe (para mostrar "Ingresar nuevo registro")
+        // **CAMBIA ESTE VALOR A 'true' o 'false' para probar**
+        const existe = false; 
+        
+        // Si el SIE del formulario coincide con el SIE requerido (o el de la sesión),
+        // consultamos si ya hay un registro.
+        if (userSie.value === SIE_CONSULTA) { 
+            registroExiste.value = existe; 
+        } else {
+            // Lógica si el SIE de la sesión es diferente al consultado
+            registroExiste.value = existe;
+        }
+
+        toast.info(`Estado del registro: ${registroExiste.value ? 'Existe' : 'No existe'}`, { autoClose: 2000 });
+
+    } catch (error) {
+        console.error('Error al verificar el registro:', error);
+        toast.error('Error al consultar el estado del registro.', { autoClose: 3000 });
+        registroExiste.value = false; // Asumir no existe en caso de error para no bloquear
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+/**
+ * Maneja el clic en el botón 'Ingresar nuevo registro'.
+ */
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+    // Lógica para preparar el formulario para un nuevo ingreso
+    // Ejemplo: limpiar campos
+};
+
+/**
+ * Maneja el clic en el botón 'Editar registro'.
+ */
+const editarRegistro = () => {
+    console.log('Editar registro clickeado.');
+    // Lógica para cargar los datos existentes para edición
+    // Ejemplo: cargar datos usando el SIE
+};
+
+
+
+
+
 onMounted(async() => {
+    checkRegistroExistence(); // Ejecutar la verificación al montar el componente
+
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
@@ -142,22 +217,31 @@ onMounted(async() => {
 }); 
 
 const findInstitucionEducativa = async () => {
-    console.log(form.value.sie);
+    console.log("form.value.sie:" , form.value.sie);
+    const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
+
     if(String(form.value.sie).length === 8){
-        const res = await ConvivenciaPacifica.findInstitucionEducativa(form.value.sie);
-        console.log("res", res);
-        if(res.data && res.data.length > 0){
-            form.value.departamentoId = res.data[0].departamento_codigo;
-            form.value.departamentoNombre = res.data[0].departamento;
-            form.value.municipioId = res.data[0].municipio_codigo;  
-            form.value.municipioNombre = res.data[0].municipio;
-            form.value.unidadEducativa = res.data[0].institucioneducativa;
-            form.value.nivel = res.data[0].niveles_abrv;
-            form.value.modalidad = res.data[0].dependencia;
-            form.value.director = res.data[0].director;
+        const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
+           console.log("Respuesta del servidor:", res);
+             console.log("Tipo de res.data:", typeof res.data.data);
+            console.log("¿Es array res.data?:", Array.isArray(res.data.data));
+      const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
+                    // O también: ue => ue.codigo_sie.toString() === codigo_sie
+                    );
+ console.log("Institución encontrada: ", data);
+        if(data){
+       form.value.departamentoId = data.departamento_codigo;
+        form.value.departamentoNombre = data.departamento;
+       // form.value.municipioId = data.municipio_codigo;
+        form.value.municipioNombre = data.distrito ;   // municipio;
+        form.value.unidadEducativa = data.nombre_unidad_educativa ;  // institucioneducativa;
+        form.value.nivel = data.nivel;
+        form.value.modalidad = data.dependencia;
+        form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
             find.value = true;
-            institucionEducativa.value = res.data[0];
-            console.log(res.data[0], form.value.sie.length, res);
+            institucionEducativa.value = data;
+            console.log("form.value.sie.length: ", form.value.sie.length);
+           
         }
     } else {
         institucionEducativa.value = null;
@@ -170,6 +254,7 @@ const findInstitucionEducativa = async () => {
         form.value.nivel = '';
         form.value.modalidad = '';
         form.value.director = '';
+        console.warn("No se encontró ninguna institución educativa para el SIE:", sie); 
     }
 }; 
 
@@ -989,6 +1074,37 @@ const validateForm = () => {
                 <v-card-item>
                     <div class="d-sm-flex align-center justify-space-between pt-sm-2">
                         <v-card-title class="text-h5">Registro de datos</v-card-title>
+
+                       <div class="d-flex align-center">
+                            <v-progress-circular
+                                v-if="isLoading"
+                                indeterminate
+                                color="primary"
+                                size="24"
+                                class="mr-4"
+                            ></v-progress-circular>
+                            
+                            <v-btn 
+                                v-if="!registroExiste && !isLoading"
+                                color="primary" 
+                                class="ml-2"
+                                @click="iniciarNuevoRegistro"
+                                flat
+                            >
+                                Ingresar nuevo registro
+                            </v-btn>
+
+                            <v-btn 
+                                v-if="registroExiste && !isLoading"
+                                color="info" 
+                                class="ml-2"
+                                @click="editarRegistro"
+                                flat
+                            >
+                                Editar registro
+                            </v-btn>
+                        </div>
+
                     </div>
                     <v-form v-model="valid" class="">
                         <v-container>
