@@ -93,18 +93,21 @@
   
     // variable de PCPA aprobados
     const aprobados = ref(0);
-    // variable de PCPA socializados
-    const solicitudes = ref(0);
-    //Actividades de promoción
-    const actividadesPromocion = ref(0);
+    const socializados = ref(0);
+    const diagnóstico = ref(0);
+    const seguimiento = ref(0);
+    const cumplimiento = ref(0);
+    const actividades_promocion = ref(0);
 
     onMounted(async () => {
         try {
             const response = await ConvivenciaPacifica.convivienciaPacificaArmonicaDashboardCounts();
-            aprobados.value = Number(response.data.total_true) || 0;
-            solicitudes.value = Number(response.data.total_false) || 0;
-            actividadesPromocion.value = Number(response.data.actividades_promocion_total) || 0;
-            //console.log('Aprobados:', aprobados.value);
+            aprobados.value = Number(response.data.actividades_aprobados) || 0;
+            socializados.value = Number(response.data.socializados) || 0;
+            diagnóstico.value = Number(response.data.diagnóstico) || 0;
+            seguimiento.value = Number(response.data.seguimiento) || 0;
+            cumplimiento.value = Number(response.data.cumplimiento) || 0;
+            actividades_promocion.value = Number(response.data.actividades_promocion_total) || 0;
         } catch (error) {
             //console.error('Error al cargar los datos del panel:', error);
             toast.error('Error al cargar los datos del panel', {
@@ -161,7 +164,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">{{ solicitudes }}</h3>
+                                    <h3 class="text-h4">{{ socializados }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
@@ -189,7 +192,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">0</h3>
+                                    <h3 class="text-h4">{{ diagnóstico }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
@@ -245,7 +248,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">0</h3>
+                                    <h3 class="text-h4">{{ seguimiento }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
@@ -273,7 +276,7 @@
                         <v-row>
                             <v-col cols="12">
                                 <div class="mt-2">
-                                    <h3 class="text-h4">0</h3>
+                                    <h3 class="text-h4">{{ cumplimiento }}</h3>
                                     <div class="mt-2">
                                         <span class="text-subtitle-1 text-muted">unidades educativas</span>
                                     </div>  
@@ -296,7 +299,7 @@
                     <v-row>
                         <v-col cols="6" sm="8">
                             <div class="mt-6">
-                                <h3 class="text-h4">{{ actividadesPromocion }}</h3>
+                                <h3 class="text-h4">{{ actividades_promocion }}</h3>
                                 <div class="align-center mt-6 ml-1">
                                     <h6 class="text-subtitle-2 text-muted pl-5">
                                         <v-icon icon="mdi mdi-checkbox-blank-circle" class="mr-1" size="10" color="primary"></v-icon> Movilización social
