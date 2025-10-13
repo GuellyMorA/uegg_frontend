@@ -3,7 +3,14 @@ import http2 from 'axios';
 const apiUrl = import.meta.env;
 
 class ConvivenciaPacificaService {
+     
+  findByCiAndCodSie(data){  // en back  getByCiAndCodSie  -->  ueggPcpaUnidadEducativa/ci/:ci/codSie/:codSie
+    return  http.get(`/ueggPcpaUnidadEducativa/ci/${data.username}/codSie/${data.codSie}`,).catch((error) => {
+        return error;
+    });
 
+  }
+ueggPcpaUnidadEducativa
   create(data){
     return http.post(`/ueggPcpaUnidadEducativa`, data).catch((error) => {
         return error.response;

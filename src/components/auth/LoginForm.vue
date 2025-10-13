@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { toast } from 'vue3-toastify';
-
+import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
 // **ASUME que este servicio puede manejar peticiones con el token**
 import Auth from '@/services/Auth'; 
 // **Necesitarás un servicio para obtener las Unidades Educativas. Podría ser el mismo 'Auth' o uno nuevo.**
@@ -14,87 +14,163 @@ const checkbox = ref(false);
 const form = ref({
     username: '4269776', //1895306
     password: '123456', //81720006
-    sistema: 'UEGG'
+    sistema: 'UEGG',
+    codSie: ''
 });
 
 // --- Nuevas variables de estado para el Modal y Unidades Educativas ---
 const showModal = ref(false);
-//const unidadesEducativasObj = ref<any[]>([]); 
-const unidadesEducativas = ref<any[]>([]); // Lista de unidades: [{ codigo_sie: 1234, nombre: 'UE X' }, ...]
+const unidadesEducativas = ref<any[]>([]);          // Lista de unidades: [{ codigo_sie: 1234, nombre: 'UE X' }, ...]
 const selectedUnidad = ref<any | null>(null);
-const loginToken = ref<string>(''); // Para almacenar el token temporalmente
-// ----------------------------------------------------------------------
-
+//const loginToken = ref<string>(''); // Para almacenar el token temporalmente
+  const   tecnicoSIEval= ref<any | null>(null); 
+const existeCiAndCodSie= ref<any | null>(null); 
 
 // --- Función para almacenar la sesión y redirigir ---
-const finalizeLogin = (sie: string, token: string, username: string) => {
-    localStorage.setItem('user', JSON.stringify({
-        codigo_sie: sie, 
-        token: token
-    }));
-   // localStorage.setItem('username', username);
-  // localStorage.setItem('password', password);
+const finalizeLogin = (sie: string, dependencia: string, username: string, typeUser: string , permiso: string ) => {
+
+     localStorage.setItem('user', JSON.stringify({
+            codigo_sie: sie, 
+            dependencia:dependencia,
+            username :username, 
+            typeUser:typeUser,
+            permiso:  permiso
+        }));
     router.push('/'); 
 };
-// --- Función simulada para obtener unidades educativas ---
-const fetchUnidadesEducativas = async (token: string) => {
-  
-    // **AQUÍ VA TU LÓGICA DE LLAMADA AL ENDPOINT**
-    // const res = await UnidadEducativaService.getUnidades(token);
-    // unidadesEducativas.value = res.data; 
-  const unidadesEducativasObj = await Auth.listUnidadesEducativasPorDirector(form.value).then((res) => {
+
+// --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
+const findByCiAndCodSie = async () => {  
+    form.value.codSie= localStorage.getItem('codigo_sie') || '';
+     const tecnico = await ConvivenciaPacifica.findByCiAndCodSie(form.value).then((res) => {
         if (res.status === 200) {
-            console.log('Auth.listUnidadesEducativasPorDirector: ', res.data);
-                       
-                return res;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.
+            console.log('  findByCiAndCodSie   res : ', res.data);    
+            existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
+            if (existeCiAndCodSie.value.length === 1) {
+              //  finalizeLogin('','FISCAL', form.value.username,'directorUE','CONV_PACIF:true|REPORTES:[allEdit:true]');
+              localStorage.setItem('existeEnBD','true');
+             // return true; 
+            }else{
+              localStorage.setItem('existeEnBD','false');
+            }
+               
+            return true;   
            
         } else {
-            toast.error('No se encontraron UE para el CI del director', {
+            toast.error('No se encontro una UE para el Director', {
                 autoClose: 3000,
                 position: toast.POSITION.TOP_RIGHT
             });
            
-            return res;
+            return false;
         }
     }).catch(() => {
         toast.error('Error de conexión con el servidor.', {
             autoClose: 3000,
             position: toast.POSITION.TOP_RIGHT
         });
-    });
+    });    
+    
+    return tecnico; 
+}
 
-       unidadesEducativas.value=  unidadesEducativasObj.data.data|| [];
+// --- Función  para obtener tecnico SIE ---
+const fetchUsuarioTecnicoSIE = async () => {  
+     const tecnico = await Auth.listUsuarioTecnicoSIE(form.value).then((res) => {
+        if (res.status === 200) {
+            console.log('Auth.listUnidadesEducativasPorDirector res : ', res.data);    
+            tecnicoSIEval.value = res.data.data|| [];  //  tecnico.data.data|| [];
+             localStorage.setItem('existeEnBD','false');
+             console.log('existeEnBD : ', localStorage.getItem('existeEnBD'));     
+             
+                // --- Lógica de verificación: Si existe un tecnico SIE
+                if (tecnicoSIEval) {
+                    finalizeLogin('','DISTRITAL', form.value.username,'tecnicoSIE','CONV_PACIF:true|REPORTES:[allEdit:true]');
+                    return true; // Login finalizado
+                }
+             console.log('user : ', localStorage.getItem('user'));  
+            return true;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.
+           
+        } else {
+            toast.error('No se encontro el CI del técnico', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT
+            });
+           
+            return false;
+        }
+    }).catch(() => {
+        toast.error('Error de conexión con el servidor.', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT
+        });
+    });  
+    
+    return tecnico; // Necesita selección manual
+};
 
-     // Ejemplo de datos simulados. Reemplazar con la llamada a la API 
+// --- Función  para obtener unidades educativas ---
+const fetchUnidadesEducativas = async () => {  
+    // **AQUÍ VA TU LÓGICA DE LLAMADA AL ENDPOINT**
+        const unidadesEducativasObj = await Auth.listUnidadesEducativasPorDirector(form.value).then((res) => {
+            if (res.status === 200) {
+                console.log('Auth.listUnidadesEducativasPorDirector: ', res.data);     
+                  unidadesEducativas.value= res.data.data || []; //  unidadesEducativasObj.data.data|| [];
+
+                // --- Lógica de verificación: Si solo hay una unidad, procede al login automático.
+                if (unidadesEducativas.value.length === 1) {//  unidadesEducativas.data.data.length===1){ 
+                    const singleUnit = unidadesEducativas.value[0];
+                    finalizeLogin(singleUnit.codigo_sie,'FISCAL',  form.value.username,'DIRECTOR','CONV_PACIF:true|ALL:[allEdit:true]');
+                    return true; // Login finalizado
+                }
+                            
+                return true;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.           
+            } else {
+
+                toast.error('No se encontraron UE para el CI del director', {
+                    autoClose: 3000,
+                    position: toast.POSITION.TOP_RIGHT
+                });
+            
+                return false;
+            }
+        }).catch(() => {
+            toast.error('Error de conexión con el servidor.', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT
+            });
+        });
+
+     
+    
+    return unidadesEducativasObj; // Necesita selección manual
+};
+
+   // Ejemplo de datos simulados. Reemplazar con la llamada a la API 
    // unidadesEducativas.value = [    // Para probar con una sola unidad,  comenta 2 de abajo:
     //    { codigo_sie: '80730460', nombre: 'UE Don Bosco - SIE 80730460' },
      //   { codigo_sie: '12345678', nombre: 'UE San Calixto - SIE 12345678' },
      //   { codigo_sie: '98765432', nombre: 'UE Maria Auxiliadora - SIE 98765432' },
-   // ];
-   //  console.log(`Fetching unidades educativas with data: ${JSON.stringify(unidadesEducativas.value, null, 2)}`);
-    // --- Lógica de verificación: Si solo hay una unidad, procede al login automático.
-    if (unidadesEducativas.value.length === 1) {//  unidadesEducativas.data.data.length===1){ 
-        const singleUnit = unidadesEducativas.value[0];
-        finalizeLogin(singleUnit.codigo_sie, token, form.value.username);
-        return true; // Login finalizado
-    }
-    
-    return false; // Necesita selección manual
-};
-// -------------------------------------------------------------------
+   // ];   //  console.log(`Fetching unidades educativas with data: ${JSON.stringify(unidadesEducativas.value, null, 2)}`);
+
 
 // --- Función para manejar la selección de la Unidad Educativa ---
-const selectUnidadEducativa = () => {
+const selectUnidadEducativa = async () => {
     if (selectedUnidad.value ) {
-        // Almacena la información de la sesión con el SIE seleccionado
-        localStorage.setItem('user', JSON.stringify({
-            codigo_sie: selectedUnidad.value.codigo_sie, 
-            token: loginToken.value
-        }));
+        // Almacena la información de la sesión con el SIE seleccionado     
+         finalizeLogin(selectedUnidad.value.codigo_sie,'FISCAL',  form.value.username,'DIRECTOR',   'write');
+
         localStorage.setItem('username', form.value.username);  
-           localStorage.setItem('password',  form.value.password);
-          localStorage.setItem('codigo_sie',  selectedUnidad.value.codigo_sie);          
+        localStorage.setItem('password',  form.value.password);
+        localStorage.setItem('codigo_sie',  selectedUnidad.value.codigo_sie);          
+        localStorage.setItem('typeUser',  'FISCAL');
+        localStorage.setItem('dependencia',  'DIRECTOR');
+        localStorage.setItem('permiso',  'write');
         showModal.value = false; // Cierra el modal
+        const byCiAndCodSie = await findByCiAndCodSie();
+        
+          console.log('existeEnBD', localStorage.getItem('existeEnBD')); 
+            console.log('user : ', localStorage.getItem('user'));  
         router.push('/'); // Redirige a la página principal
     } else {
         toast.error('Debe seleccionar una Unidad Educativa.', {
@@ -106,34 +182,39 @@ const selectUnidadEducativa = () => {
 // -------------------------------------------------------------------
 
 const submit = async (event: any) => {
-    const respuesta = await Auth.login(form.value).then((res) => {
+    const respuesta = await Auth.login(form.value).then( async (res) => {
         if (res.status === 200) {
-            console.log('Auth.login: ', res.data);
-            
-            // --- Lógica modificada para el Modal ---
+            console.log('Auth.login: ', res.data);        
+  
             if (res.data.codigo_sie) {
-                // Caso 1: El usuario tiene un SIE asignado directamente
+                // Caso 1: El usuario tiene un SIE asignado directamente ->director
                 localStorage.setItem('user', JSON.stringify(res.data));
                 localStorage.setItem('username', form.value.username);
-              //rbc   router.push('/');
-              // Caso 2: El usuario tiene un token pero NO un SIE asignado
-             //          loginToken.value = res.data.token; // Almacena el token
-                fetchUnidadesEducativas(res.data.token); // Carga las unidades
-                showModal.value = true; // Muestra el modal                
+              //rbc   router.push('/');             
+               // Carga las unidades
+                 fetchUnidadesEducativas() ;
+                //findByCiAndCodSie();
+
+               showModal.value = true; // Muestra el modal                       
               
                 return res;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.
             } else {
-                localStorage.setItem('user', JSON.stringify({codigo_sie: 80730460, token: res.data.token}));
-                router.push('/');
-                return res;                
-                // toast.error('Usuario no tiene asignado una unidad educativa', {
-                //     autoClose: 3000,
-                //     position: toast.POSITION.TOP_RIGHT
-                // });
-                // localStorage.removeItem('user');
-                // return res;
+              // Caso 2: El usuario NO tiene un SIE asignado -> tecnico sie
+                if ( await  fetchUsuarioTecnicoSIE()) {                            
+                     router.push('/');
+                     return res; 
+                } 
+               if ( unidadesEducativas.value.length === 0 ) {                         
+                     toast.error('Usuario no tiene asignado una unidad educativa', {
+                      autoClose: 3000,
+                     position: toast.POSITION.TOP_RIGHT
+                    });
+                   localStorage.removeItem('user');
+                     return res; 
+                } 
+
             }
-            // -----------------------------------------
+            
         } else {
             toast.error('Usuario y contraseña no válido', {
                 autoClose: 3000,
@@ -141,6 +222,7 @@ const submit = async (event: any) => {
             });
             localStorage.removeItem('user');
             localStorage.removeItem('username');
+
             return res;
         }
     }).catch(() => {

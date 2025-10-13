@@ -18,6 +18,9 @@ const dialogSave = ref(false);
 const validationErrors = ref();
 const find = ref(false);
 const variusSie = ref(false);
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+ console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+
 
 const comisionConstruccion = ref();
 const tema = ref();
@@ -262,7 +265,7 @@ const findMiembrosComisionConstruccion = async () => {
     console.log(form.value.sie);
  if(String(form.value.sie).length === 8){
     const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
-    console.log("res", res);
+    console.log("findMiembrosComisionConstruccion res: ", res);
 
     res.data.map((data: {  id_comision_tipo: number; id_miembro_tipo: number; 
                         }, index:  number) => {
@@ -1149,7 +1152,7 @@ const validateForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" :readonly="readOnlyVar" hide-details required></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
