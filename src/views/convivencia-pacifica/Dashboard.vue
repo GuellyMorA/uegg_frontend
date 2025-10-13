@@ -5,6 +5,17 @@
     import { toast } from 'vue3-toastify';
     //import Pivot from '@/components/Pivot.vue'
 
+    /* impoprtacion para grafica */
+    /* import { Pie } from 'vue-chartjs'
+    import {
+    Chart as ChartJS,
+    Title,
+    Tooltip,
+    Legend,
+    ArcElement
+    } from 'chart.js' */
+    /* fin de la grafica */
+
     const theme = useTheme();
     const primary = theme.current.value.colors.primary;
     const error = theme.current.value.colors.error;
@@ -88,7 +99,7 @@
 
         };
     });
-    const Chart = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    const Chart = [5, 10, 40, 0, 0, 0, 0, 0, 0];
 
   
     // variable de PCPA aprobados
@@ -116,7 +127,20 @@
             });
         }
     });
-    
+    /* // Registrar los componentes que vamos a usar
+    ChartJS.register(Title, Tooltip, Legend, ArcElement)
+    // Datos del gráfico
+    const chartData = {
+        labels: ['Rojo', 'Azul', 'Amarillo', 'Verde'],
+        datasets: [
+            {
+            label: 'Colores',
+            data: [10, 20, 30, 15],
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50'],
+            hoverOffset: 10
+            }
+        ]
+    } */
 </script>
 
 <template>
@@ -299,7 +323,10 @@
                     <v-row>
                         <v-col cols="6" sm="8">
                             <div class="mt-6">
-                                <h3 class="text-h4">{{ actividades_promocion }}</h3>
+                                <!-- <h3 class="text-h4">{{ actividades_promocion }}</h3> -->
+                                <div class="p-4">
+                                    <Pie :data="chartData" :options="chartOptions" />
+                                </div>
                                 <div class="align-center mt-6 ml-1">
                                     <h6 class="text-subtitle-2 text-muted pl-5">
                                         <v-icon icon="mdi mdi-checkbox-blank-circle" class="mr-1" size="10" color="primary"></v-icon> Movilización social
