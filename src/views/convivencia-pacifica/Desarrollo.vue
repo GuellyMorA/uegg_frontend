@@ -44,6 +44,11 @@ const uploadFile = async () => {
     }
 }
 */
+/* Para subir archiv */
+const planFile = ref(null);
+const diagnosticoFile = ref(null);
+const uploadMessage = ref('');
+
 const form: any = ref({
     sie: null,
     departamentoId: null,
@@ -1281,7 +1286,7 @@ modificacion                     -->
                             </v-col>
 
                             <!--adjuntar archivos-->
-                            <v-container>
+                            <!-- <v-container>
                                 <v-form @submit.prevent="uploadFile">
                                     <v-file-input
                                         label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
@@ -1339,8 +1344,49 @@ modificacion                     -->
                                         {{ uploadMessage }}
                                     </v-alert>
                                 </v-form>
-                            </v-container>
+                            </v-container> -->
+                            <v-container>
+                                <v-form @submit.prevent="save">
+                                    
+                                    <!-- Plan de convivencia pacifica -->
+                                    <v-file-input
+                                    label="Adjuntar Plan de convivencia pacifica (PDF)"
+                                    v-model="planFile"
+                                    accept="application/pdf"
+                                    prepend-icon="mdi-paperclip"
+                                    outlined
+                                    dense
+                                    ></v-file-input>
 
+                                    <!-- Diagnóstico de convivencia pacifica -->
+                                    <v-file-input
+                                    label="Adjuntar Diagnóstico de convivencia pacifica (PDF)"
+                                    v-model="diagnosticoFile"
+                                    accept="application/pdf"
+                                    prepend-icon="mdi-paperclip"
+                                    outlined
+                                    dense
+                                    ></v-file-input>
+
+                                    <!-- <v-btn
+                                    :disabled="!planFile && !diagnosticoFile"
+                                    color="primary"
+                                    class="mt-4"
+                                    type="submit"
+                                    >
+                                    Guardar todo
+                                    </v-btn> -->
+
+                                    <v-alert
+                                    v-if="uploadMessage"
+                                    type="success"
+                                    class="mt-3"
+                                    >
+                                    {{ uploadMessage }}
+                                    </v-alert>
+
+                                </v-form>
+                            </v-container>
                             <!--fin-->
                             <v-col cols="12" md="12">
                                 <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
