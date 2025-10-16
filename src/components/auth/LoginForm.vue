@@ -110,13 +110,13 @@ const fetchUsuarioTecnicoSIE = async () => {
 };
 
 // --- Función  para obtener unidades educativas ---
-const fetchUnidadesEducativas = async () => {  
+const fetchUnidadesEducativasPorDirector = async () => {  
     // **AQUÍ VA TU LÓGICA DE LLAMADA AL ENDPOINT**
         const unidadesEducativasObj = await Auth.listUnidadesEducativasPorDirector(form.value).then((res) => {
             if (res.status === 200) {
                 console.log('Auth.listUnidadesEducativasPorDirector: ', res.data);     
                   unidadesEducativas.value= res.data.data || []; //  unidadesEducativasObj.data.data|| [];
-
+                     localStorage.setItem('user', JSON.stringify(res.data));
                 // --- Lógica de verificación: Si solo hay una unidad, procede al login automático.
                 if (unidadesEducativas.value.length === 1) {//  unidadesEducativas.data.data.length===1){ 
                     const singleUnit = unidadesEducativas.value[0];
@@ -182,27 +182,25 @@ const selectUnidadEducativa = async () => {
 // -------------------------------------------------------------------
 
 const submit = async (event: any) => {
-    const respuesta = await Auth.login(form.value).then( async (res) => {
-        if (res.status === 200) {
-            console.log('Auth.login: ', res.data);        
-  
-            if (res.data.codigo_sie) {
+    const respuesta = fetchUnidadesEducativasPorDirector(); // await Auth.login(form.value).then( async (res) => {
+        if (await respuesta) {  // res.status === 200) {
+            //console.log('Auth.login: ', res.data);    
+           // if (res.data.codigo_sie) {
                 // Caso 1: El usuario tiene un SIE asignado directamente ->director
-                localStorage.setItem('user', JSON.stringify(res.data));
+                //localStorage.setItem('user', JSON.stringify(res.data));
                 localStorage.setItem('username', form.value.username);
               //rbc   router.push('/');             
                // Carga las unidades
-                 fetchUnidadesEducativas() ;
-                //findByCiAndCodSie();
-
+               //  fetchUnidadesEducativasPorDirector() ;
+              
                showModal.value = true; // Muestra el modal                       
               
-                return res;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.
+                return respuesta;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.
             } else {
               // Caso 2: El usuario NO tiene un SIE asignado -> tecnico sie
                 if ( await  fetchUsuarioTecnicoSIE()) {                            
                      router.push('/');
-                     return res; 
+                     return respuesta; 
                 } 
                if ( unidadesEducativas.value.length === 0 ) {                         
                      toast.error('Usuario no tiene asignado una unidad educativa', {
@@ -210,27 +208,26 @@ const submit = async (event: any) => {
                      position: toast.POSITION.TOP_RIGHT
                     });
                    localStorage.removeItem('user');
-                     return res; 
+                     return respuesta; 
+                } else {
+                    toast.error('Usuario y contraseña no válido', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT
+                    });
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('username');
+
+                    return respuesta;
                 } 
 
-            }
-            
-        } else {
-            toast.error('Usuario y contraseña no válido', {
-                autoClose: 3000,
-                position: toast.POSITION.TOP_RIGHT
-            });
-            localStorage.removeItem('user');
-            localStorage.removeItem('username');
-
-            return res;
-        }
-    }).catch(() => {
+            }            
+        
+    /*}).catch(() => {
         toast.error('Error de conexión con el servidor.', {
             autoClose: 3000,
             position: toast.POSITION.TOP_RIGHT
         });
-    });
+    });*/
 };
 </script>
 

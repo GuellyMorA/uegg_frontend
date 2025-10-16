@@ -5,7 +5,7 @@ const apiUrl = import.meta.env;
 class AuthService {
   
   login(form) {
-    console.log("Datos enviados en el formulario:", form); // <-- Imprime el valor del formulario
+    console.log("Datos enviados en LOGIN:", form); // <-- Imprime el valor del formulario
 
     return http2({
       method: 'post',
@@ -30,7 +30,7 @@ class AuthService {
   }
 
   listUsuarioTecnicoSIE(data) {
-      console.log("Datos enviados: ", data); // <-- Imprime el valor del formulario
+      console.log("Datos enviados TECNICO SIE: ", data); // <-- Imprime el valor del formulario
 
       return http2({
         method: 'get',
@@ -49,13 +49,13 @@ class AuthService {
         return response;
       })
       .catch((error) => {
-        console.error("Error 400 durante la autenticación:", error); // <-- Imprime el error si ocurre
+        console.error("Error 400 durante la autenticación Tecnico SIE:", error); // <-- Imprime el error si ocurre
         return error;
       });
   }
 
     listUnidadesEducativasPorDirector(data) {
-      console.log("Datos enviados: ", data); // <-- Imprime el valor del formulario
+      console.log("Datos enviados DIRECTOR: ", data); // <-- Imprime el valor del formulario
       return http2({
         method: 'get',
         url: `/uegg/DatosDirectorUE/${data.username}/${data.password}`,
@@ -73,7 +73,7 @@ class AuthService {
         return response;
       })
       .catch((error) => {
-        console.error("Error durante la autenticación:", error); // <-- Imprime el error si ocurre
+        console.error("Error durante la autenticación DIRECTOR UE:", error); // <-- Imprime el error si ocurre
         return error;
       });
     }

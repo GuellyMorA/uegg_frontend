@@ -49,73 +49,7 @@ const uploadFile = async () => {
     }
 }
 */
-const form: any = ref({
-    sie: null,
-    departamentoId: null,
-    departamentoNombre: '',
-    municipioId: null,
-    municipioNombre: '',
-    unidadEducativa: '',
-    nivel: '',
-    modalidad: '',
-    director: '',
-    fecha: '',
-    registroAnterior: false,
-    comisionCargo: '',
-    comisionNombre: '',
-    comisionSocializacionEstudiante: false,
-    comisionSocializacionDirector: false,
-    comisionSocializacionMaestro: false,
-    comisionSocializacionPadre: false,
-    comisionSocializacionOtro: false,
-    comisionSocializacionEstudianteNombre: '',
-    comisionSocializacionDirectorNombre: '',
-    comisionSocializacionMaestroNombre: '',
-    comisionSocializacionPadreNombre: '',
-    comisionSocializacionOtroNombre: '',
-    comisionSocializacionIdConstruccion: '',
-    comisionSocializacionIdMiembro: '',
-    temaDerecho: '',
-    temaNorma: '',
-    temaDisciplinario: '',
-    temaDisciplinarioCorrectivo: '',
-    temaDisciplinarioProcedimientoMarco: '',
-    temaDisciplinarioProcedimientoAlternativo: '',
-    temaDisciplinarioLineamiento: '',
-    temaSancion: '',
-    temaAdopcion: '',
-    temaAlternativo: '',
-    temaRemision: '',
-    temaTaller: '',
-    temaPromover: '',
-    temaPromover1: '',
-    temaPromover2: '',
-    temaPromover3: '',
-    temaPromover4: '',
-    temaPromover5: '',
-    temaPromover6: '',
-    temaPromover7: '',
-    temaPromover8: '',
-    temaPromover9: '',
-    temaSeguimiento: '',
-    comisionAprobacionCargo: '',
-    comisionAprobacionNombre: '',
-    comisionAprobacionEstudiante: false,
-    comisionAprobacionDirector: false,
-    comisionAprobacionMaestro: false,
-    comisionAprobacionPadre: false,
-    comisionAprobacionOtro: false,
-    comisionAprobacionEstudianteNombre: '',
-    comisionAprobacionDirectorNombre: '',
-    comisionAprobacionMaestroNombre: '',
-    comisionAprobacionPadreNombre: '',
-    comisionAprobacionOtroNombre: '',
-    comisionAprobacionIdConstruccion: '',
-    comisionAprobacionIdMiembro: '',
-    fechaAprobacion:'',
-    vigenciaAprobacion: '',
-    validado: false
-});
+
 
 const sieRules = [
     (value: any) => {
@@ -138,11 +72,189 @@ const isLoading = ref(true);
 const userSie = ref(localStorage.getItem('userSie') || SIE_CONSULTA); // Usar el SIE del usuario logueado
 // --- Fin Variables de Estado Nuevas ---
 
-// --- Funciones Nuevas ---
+// --- Estado del Componente ---
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
 
-/**
- * Función para simular la consulta al endpoint de existencia del registro.
- */
+// Para los v-file-input
+const selectedFilePlan = ref(null);
+const uploadMessagePlan = ref('');
+const selectedFileDiagnostico = ref(null);
+const uploadMessageDiagnostico = ref('');
+
+// Objeto reactivo con todos los campos del formulario y datos de prueba
+const form = ref({
+    // Datos de Unidad Educativa
+    sie: '40730069',
+    unidadEducativa: 'UE San Calixto II',
+    departamentoNombre: 'LA PAZ',
+    municipioNombre: 'LA PAZ I',
+    nivel: 'PRIMARIA VOCACIONAL - SECUNDARIA COMUNITARIA PRODUCTIVA',
+    modalidad: 'FISCAL',
+    director: 'ANDREA II HUANCA RODRIGUEZ',
+
+    // Construcción del PCPA
+    fecha: '01/01/2025',
+    registroAnterior: true,
+
+    // Miembros de la comisión de construcción del PCPA
+    comisionSocializacionEstudiante: true,
+    comisionSocializacionEstudianteNombre: 'Estudiante Alfa, Estudiante Beta',
+    comisionSocializacionDirector: true,
+    comisionSocializacionDirectorNombre: 'Director Titular',
+    comisionSocializacionMaestro: true,
+    comisionSocializacionMaestroNombre: 'Maestro A, Maestro B',
+    comisionSocializacionPadre: true,
+    comisionSocializacionPadreNombre: 'Padre Familia 1, Madre Familia 2',
+    comisionSocializacionOtro: false,
+    comisionSocializacionOtroNombre: '',
+
+    // Temas que aborda el Plan
+    temaDerecho: true,
+    temaNorma: true,
+    temaPromover: true,
+    temaPromover1: true,
+    temaPromover2: false,
+    temaPromover3: true,
+    temaPromover4: false,
+    temaPromover5: true,
+    temaPromover6: false,
+    temaPromover7: true,
+    temaPromover8: false,
+    temaPromover9: true,
+    temaDisciplinario: true,
+    temaDisciplinarioCorrectivo: true,
+    temaDisciplinarioProcedimientoMarco: false,
+    temaDisciplinarioProcedimientoAlternativo: true,
+    temaDisciplinarioLineamiento: false,
+
+    // Miembros de la comisión que aprueba el PCPA
+    comisionAprobacionEstudiante: true,
+    comisionAprobacionEstudianteNombre: 'Representante Estudiantil A',
+    comisionAprobacionDirector: true,
+    comisionAprobacionDirectorNombre: 'Director Aprobador',
+    comisionAprobacionMaestro: false,
+    comisionAprobacionMaestroNombre: '',
+    comisionAprobacionPadre: true,
+    comisionAprobacionPadreNombre: 'Presidente de Junta Escolar',
+    comisionAprobacionOtro: false,
+    comisionAprobacionOtroNombre: '',
+    fechaAprobacion: '15/02/2025',
+    vigenciaAprobacion: 2,
+    // Declaración jurada
+    validado: false
+
+// VARIABLES old
+    // sie: null,
+    // departamentoId: null,
+    // departamentoNombre: '',
+    // municipioId: null,
+    // municipioNombre: '',
+    // unidadEducativa: '',
+    // nivel: '',
+    // modalidad: '',
+    // director: '',
+    // fecha: '',
+    // registroAnterior: false,
+    // comisionCargo: '',
+    // comisionNombre: '',
+    // comisionSocializacionEstudiante: false,
+    // comisionSocializacionDirector: false,
+    // comisionSocializacionMaestro: false,
+    // comisionSocializacionPadre: false,
+    // comisionSocializacionOtro: false,
+    // comisionSocializacionEstudianteNombre: '',
+    // comisionSocializacionDirectorNombre: '',
+    // comisionSocializacionMaestroNombre: '',
+    // comisionSocializacionPadreNombre: '',
+    // comisionSocializacionOtroNombre: '',
+    // comisionSocializacionIdConstruccion: '',
+    // comisionSocializacionIdMiembro: '',
+    // temaDerecho: '',
+    // temaNorma: '',
+    // temaDisciplinario: '',
+    // temaDisciplinarioCorrectivo: '',
+    // temaDisciplinarioProcedimientoMarco: '',
+    // temaDisciplinarioProcedimientoAlternativo: '',
+    // temaDisciplinarioLineamiento: '',
+    // temaSancion: '',
+    // temaAdopcion: '',
+    // temaAlternativo: '',
+    // temaRemision: '',
+    // temaTaller: '',
+    // temaPromover: '',
+    // temaPromover1: '',
+    // temaPromover2: '',
+    // temaPromover3: '',
+    // temaPromover4: '',
+    // temaPromover5: '',
+    // temaPromover6: '',
+    // temaPromover7: '',
+    // temaPromover8: '',
+    // temaPromover9: '',
+    // temaSeguimiento: '',
+    // comisionAprobacionCargo: '',
+    // comisionAprobacionNombre: '',
+    // comisionAprobacionEstudiante: false,
+    // comisionAprobacionDirector: false,
+    // comisionAprobacionMaestro: false,
+    // comisionAprobacionPadre: false,
+    // comisionAprobacionOtro: false,
+    // comisionAprobacionEstudianteNombre: '',
+    // comisionAprobacionDirectorNombre: '',
+    // comisionAprobacionMaestroNombre: '',
+    // comisionAprobacionPadreNombre: '',
+    // comisionAprobacionOtroNombre: '',
+    // comisionAprobacionIdConstruccion: '',
+    // comisionAprobacionIdMiembro: '',
+    // fechaAprobacion:'',
+    // vigenciaAprobacion: '',
+    // validado: false
+});
+
+// --- Métodos ---
+
+
+
+
+
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+};
+
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+       console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
+
+
+// Lógica para subir archivos (simulada)
+const uploadFilePlan = () => {
+    if (selectedFilePlan.value) {
+        uploadMessagePlan.value = `Archivo "${selectedFilePlan.value.name}" subido con éxito.`;
+        console.log('Subiendo Plan:', selectedFilePlan.value);
+    }
+};
+const uploadFileDiagnostico = () => {
+    if (selectedFileDiagnostico.value) {
+        uploadMessageDiagnostico.value = `Archivo "${selectedFileDiagnostico.value.name}" subido con éxito.`;
+        console.log('Subiendo Diagnóstico:', selectedFileDiagnostico.value);
+    }
+};
+
+
+
+
+
+
+
+// --- Funciones Nuevas  para simular la consulta al endpoint de existencia del registro.---
+
 const checkRegistroExistence = async () => {
     isLoading.value = true;
     
@@ -180,23 +292,6 @@ const checkRegistroExistence = async () => {
     }
 };
 
-/**
- * Maneja el clic en el botón 'Ingresar nuevo registro'.
- */
-const iniciarNuevoRegistro = () => {
-    console.log('Ingresar nuevo registro clickeado.');
-    // Lógica para preparar el formulario para un nuevo ingreso
-    // Ejemplo: limpiar campos
-};
-
-/**
- * Maneja el clic en el botón 'Editar registro'.
- */
-const editarRegistro = () => {
-    console.log('Editar registro clickeado.');
-    // Lógica para cargar los datos existentes para edición
-    // Ejemplo: cargar datos usando el SIE
-};
 
 
 
@@ -487,9 +582,16 @@ const onDateInputAprobacion = (event: any) => {
         form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
     }
 };
-
+    // Lógica para guardar el formulario (simulada)
 const save = async () => {
-    console.log(form.value);
+
+    console.log('Guardando datos:', form.value);
+    dialog.value = false;
+    dialogSave.value = true;
+    isFormDisabled.value = true; // Deshabilita el formulario después de guardar
+    isFormDisabled.value = true; // Deshabilita el formulario después de guardar
+    registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
+
 
     if (!validateForm()) {
         dialog.value = false;  
@@ -975,8 +1077,12 @@ const save = async () => {
 };
 
 
+    // Lógica para reiniciar el formulario 
+const reset = () => {   
+    console.log('Limpiar formulario.');
+    dialogSave.value = false;
+    registroExiste.value = false; // Permite ingresar un nuevo registro
 
-const reset = () => {    
     form.value.fecha = '';
     form.value.registroAnterior = false;
     form.value.comisionCargo = '';
@@ -1070,406 +1176,275 @@ const validateForm = () => {
 
 
 </script>
+
+
 <template>
-    <v-row>    
-        <v-col cols="12" lg="12" sm="12">
+    <v-row>
+        <v-col cols="12">
             <v-card elevation="10" class="withbg">
                 <v-card-item>
                     <div class="d-sm-flex align-center justify-space-between pt-sm-2">
                         <v-card-title class="text-h5">Registro de datos</v-card-title>
-
-                       <div class="d-flex align-center">
-                            <v-progress-circular
-                                v-if="isLoading"
-                                indeterminate
-                                color="primary"
-                                size="24"
-                                class="mr-4"
-                            ></v-progress-circular>
+                        <div class="d-flex align-center">
+                            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
                             
-                            <v-btn 
-                                v-if="!registroExiste && !isLoading"
-                                color="primary" 
-                                class="ml-2"
-                                @click="iniciarNuevoRegistro"
-                                flat
-                            >
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
                                 Ingresar nuevo registro
                             </v-btn>
 
-                            <v-btn 
-                                v-if="registroExiste && !isLoading"
-                                color="info" 
-                                class="ml-2"
-                                @click="editarRegistro"
-                                flat
-                            >
-                                Editar registro
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+                                Modificar registro
                             </v-btn>
                         </div>
-
                     </div>
-                    <v-form v-model="valid" class="">
+
+                    <v-form v-model="valid" class="mt-4">
                         <v-container>
-                        <v-row>
-                            <v-col cols="12" md="12">                                
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos de Unidad Educativa</span>
-                                </div>
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details v-on:keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
-                            </v-col>
+                            <v-row>
+                                <!-- Datos de Unidad Educativa -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos de Unidad Educativa</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.sie" :counter="8" label="SIE" required hide-details @keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="8">
+                                    <v-text-field v-model="form.unidadEducativa" label="Unidad Educativa" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.nivel" label="Nivel" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.modalidad" label="Modalidad" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="8">
+                                    <v-text-field v-model="form.director" label="Director" hide-details required :readonly="find"></v-text-field>
+                                </v-col>
 
-                            <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.nivel" label="Nivel" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.modalidad" label="Modalidad" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.director" label="Director" hide-details required :readonly="find"></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="12">
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Construcción del PCPA</span>
-                                </div>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" :readonly="readOnlyVar" hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="8" >
-                                <!-- <v-checkbox v-model="form.registroAnterior" :error-messages="''" label="¿Se realizó un diagnóstico antes de iniciar la construcción del PCPA?" required></v-checkbox> -->
-                                <v-checkbox v-model="form.registroAnterior" label="¿Se realizó un diagnóstico antes de iniciar la construcción del PCPA?" required></v-checkbox>
-                            </v-col>
-
-                            <!-- <v-col cols="12" md="4" >
-                                Miembros de la comisión de construcción del PCPA
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionCargo" label="Cargo" hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionNombre" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
-                            <v-col cols="12" md="12" >
+                                <!-- Construcción del PCPA -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Construcción del PCPA</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="8">
+                                    <v-checkbox v-model="form.registroAnterior" label="¿Se realizó un diagnóstico antes de iniciar la construcción del PCPA?" :disabled="isFormDisabled" required></v-checkbox>
+                                </v-col>
                                 
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión de construcción del PCPA</span>
-                                </div>
-                            </v-col>
+                                <!-- Miembros de la comisión de construcción -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión de construcción del PCPA</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionSocializacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionEstudiante || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionSocializacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionDirector || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionSocializacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionMaestro || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionSocializacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionPadre || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionSocializacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionOtro || isFormDisabled"></v-text-field>
+                                </v-col>
 
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" ></v-checkbox>
-                            </v-col>
+                                <!-- Temas que aborda el Plan -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Temas que aborda el Plan de Convivencia Pacífica y Armónica</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-checkbox v-model="form.temaDerecho" label="Derechos y deberes" :disabled="isFormDisabled" required></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-checkbox v-model="form.temaNorma" label="Normas de conducta" :disabled="isFormDisabled" required></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-checkbox v-model="form.temaPromover" label="Componentes para promover la convivencia pacífica" :disabled="isFormDisabled" required></v-checkbox>
+                                    <v-row class="pl-10 secondarybg" v-if="form.temaPromover">
+                                        <v-col cols="12">
+                                            <v-checkbox v-model="form.temaPromover1" label="Movilización social" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover2" label="Fomento al desarrollo de habilidades y práctica de valores" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover3" label="Capacitación" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover4" label="Medidas de seguridad en la infraestructura" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover5" label="Normas de convivencia en la unidad educativa" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover6" label="Promoción de la participación de las y los estudiantes" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover7" label="Gestión y articulación con la comunidad educativa" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover8" label="Acción comunal" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaPromover9" label="Acciones para reducción de riesgos en el contexto y en la unidad educativa" :disabled="isFormDisabled" required></v-checkbox>
+                                        </v-col>
+                                    </v-row>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-checkbox v-model="form.temaDisciplinario" label="Procedimientos regulatorios" :disabled="isFormDisabled" required></v-checkbox>
+                                    <v-row class="pl-10 secondarybg" v-if="form.temaDisciplinario">
+                                        <v-col cols="12">
+                                            <v-checkbox v-model="form.temaDisciplinarioCorrectivo" label="CORRECTIVOS PEDAGÓGICOS" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaDisciplinarioProcedimientoMarco" label="PROCEDIMIENTO MARCO PARA LA ADOPCIÓN DE DECISIONES DISCIPLINARIAS" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaDisciplinarioProcedimientoAlternativo" label="PROCEDIMIENTOS ALTERNATIVOS PARA LA SOLUCIÓN DE CONFLICTOS" :disabled="isFormDisabled" required></v-checkbox>
+                                            <v-checkbox v-model="form.temaDisciplinarioLineamiento" label="LINEAMIENTOS PARA LA REMISIÓN DE INFORMES SOBRE CASOS DE VIOLENCIA" :disabled="isFormDisabled" required></v-checkbox>
+                                        </v-col>
+                                    </v-row>
+                                </v-col>
 
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionEstudiante" ></v-text-field>
-                            </v-col>
+                                <!-- Miembros de la comisión que aprueba -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión que aprueba el PCPA</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionAprobacionEstudiante" label="Estudiantes" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionAprobacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionEstudiante || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionAprobacionDirector" label="Director(a)" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionAprobacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionDirector || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionAprobacionMaestro" label="Maestro(a)" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionAprobacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionMaestro || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionAprobacionPadre" label="Padres/Madres" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionAprobacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionPadre || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="2">
+                                    <v-checkbox v-model="form.comisionAprobacionOtro" label="Otros" :disabled="isFormDisabled"></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" md="4">
+                                    <v-text-field v-model="form.comisionAprobacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionOtro || isFormDisabled"></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-text-field v-model="form.fechaAprobacion" label="Fecha de aprobación" @input="onDateInputAprobacion" placeholder="DD/MM/AAAA" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                    <v-text-field v-model="form.vigenciaAprobacion" label="Tiempo de vigencia (1 a 3 años)" type="number" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                </v-col>
+                                
+                                <!-- Adjuntar archivos -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Adjuntar archivos</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12" md="6">
+                                     <v-form @submit.prevent="uploadFilePlan">
+                                        <v-file-input
+                                            label="Adjuntar su Plan de convivencia (PDF)"
+                                            v-model="selectedFilePlan"
+                                            accept=".pdf"
+                                            prepend-icon="mdi-paperclip"
+                                            outlined
+                                            dense
+                                            :disabled="isFormDisabled"
+                                        ></v-file-input>
+                                        <v-btn :disabled="!selectedFilePlan || isFormDisabled" color="primary" class="mt-4" type="submit">Subir Plan</v-btn>
+                                        <v-alert v-if="uploadMessagePlan" type="success" class="mt-3">{{ uploadMessagePlan }}</v-alert>
+                                    </v-form>
+                                </v-col>
+                                 <v-col cols="12" md="6">
+                                    <v-form @submit.prevent="uploadFileDiagnostico">
+                                        <v-file-input
+                                            label="Adjuntar su diagnóstico de convivencia (PDF)"
+                                            v-model="selectedFileDiagnostico"
+                                            accept=".pdf"
+                                            prepend-icon="mdi-paperclip"
+                                            outlined
+                                            dense
+                                            :disabled="isFormDisabled"
+                                        ></v-file-input>
+                                        <v-btn :disabled="!selectedFileDiagnostico || isFormDisabled" color="primary" class="mt-4" type="submit">Subir Diagnóstico</v-btn>
+                                        <v-alert v-if="uploadMessageDiagnostico" type="success" class="mt-3">{{ uploadMessageDiagnostico }}</v-alert>
+                                    </v-form>
+                                </v-col>
 
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionDirector" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionMaestro" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionPadre" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionOtro" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="12" >
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Temas que aborda el Plan de Convivencia Pacífica y Armónica</span>
-                                </div>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaDerecho" label="Derechos y deberes" required></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaNorma" label="Normas de conducta" required></v-checkbox>
-                            </v-col>
-
-                            <!-- <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaDisciplinario" label="Procedimientos disciplinarios" required></v-checkbox>
-                            </v-col> -->
-<!--Modificación implementación-->
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaPromover" label="Componentes para promover la convivencia pacífica" required></v-checkbox>
-                                <v-row class="pl-10 secondarybg" v-if="form.temaPromover">
-                                    <v-col cols="12" md="6" >
-                                        <v-checkbox v-model="form.temaPromover1" label="Movilización social" required></v-checkbox>
-                                        <v-checkbox v-model="form.temaPromover2" label="Fomento al desarrollo de habilidades y práctica de valores" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover3" label="Capacitación" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover4" label="Medidas de seguridad en la infraestructura" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover5" label="Normas de convivencia en la unidad unidadEducativa" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover6" label="Promoción de la participación de las y los estudiantes" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover7" label="Gestión y articulación con la comunidad educativa" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaPromover8" label="Acción comunal" required></v-checkbox>   
-                                        <v-checkbox v-model="form.temaPromover9" label="Acciones para reducción de riesgos en el contexto y en la unidad educativa" required></v-checkbox>
-                                    </v-col>
-                                </v-row>
-                            </v-col>
-
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaDisciplinario" label="Procedimientos regulatorios" required></v-checkbox> <!-- modificación-->
-                                <v-row class="pl-10 secondarybg" v-if="form.temaDisciplinario">
-                                    <v-col cols="12" md="6" >
-                                        <v-checkbox v-model="form.temaDisciplinarioCorrectivo" label="CORRECTIVOS PEDAGÓGICOS" required></v-checkbox>
-                                        <v-checkbox v-model="form.temaDisciplinarioProcedimientoMarco" label="PROCEDIMIENTO MARCO PARA LA ADOPCIÓN DE DECISIONES DISCIPLINARIAS" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaDisciplinarioProcedimientoAlternativo" label="PROCEDIMIENTOS ALTERNATIVOS PARA LA SOLUCIÓN DE CONFLICTOS" required></v-checkbox>  
-                                        <v-checkbox v-model="form.temaDisciplinarioLineamiento" label="LINEAMIENTOS PARA LA REMISIÓN DE INFORMES SOBRE CASOS DE VIOLENCIA" required></v-checkbox>
-                                    </v-col>
-                                </v-row>
-                            </v-col>
-                            <!-- <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaSancion" label="Sanciones" required></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaAdopcion" label="Procedimiento marco para la adopción de decisiones disciplinarias" required></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaAlternativo" label="Procedimientos alternativos pra la solución de conflictos" required></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaRemision" label="Lineamientos para la remisión de informes sobre casos de violencia" required></v-checkbox>
-                            </v-col> -->
-
-<!--                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaTaller" label="Programación de talleres de capacitación" required></v-checkbox>
-                            </v-col>
- //mod modificacion                      -->
-
-<!--Modificación implementación-->
-<!--                           <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.temaSeguimiento" label="Plan de seguimiento y evaluación" required></v-checkbox>
-                            </v-col>
-modificacion                     -->
-                            <v-col cols="12" md="12">
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión que aprueba el PCPA</span> <!-- Modificación -->
-                                </div>
-                            </v-col>
-
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.comisionAprobacionCargo" label="Cargo" hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.comisionAprobacionNombre" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionAprobacionEstudiante" label="Estudiantes" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionAprobacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionAprobacionEstudiante" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionAprobacionDirector" label="Director(a)" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionAprobacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionAprobacionDirector" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionAprobacionMaestro" label="Maestro(a)" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionAprobacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionAprobacionMaestro" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionAprobacionPadre" label="Padres/Madres" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionAprobacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionAprobacionPadre" ></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionAprobacionOtro" label="Otros" ></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionAprobacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionAprobacionOtro" ></v-text-field>
-                            </v-col>
-
-
-                            <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.fechaAprobacion" label="Fecha de aprobación"  @input="onDateInputAprobacion" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.vigenciaAprobacion" label="Tiempo de vigencia (1 a 3 años)" type="number"  hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="12">
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Adjuntar archivos</span>
-                                </div>
-                            </v-col>
-
-<!--adjuntar archivos-->
-  <v-container>
-    <v-form @submit.prevent="uploadFile">
-      <v-file-input
-        label="Adjuntar su Plan de convivencia pacifica en pofmato pdf"
-        v-model="selectedFile"
-        accept="*/*"
-        prepend-icon="mdi-paperclip"
-        outlined
-        dense
-      ></v-file-input>
-
-      <v-btn
-        :disabled="!selectedFile"
-        color="primary"
-        class="mt-4"
-        type="submit"
-      >
-        Subir archivo
-      </v-btn>
-
-      <v-alert
-        v-if="uploadMessage"
-        type="success"
-        class="mt-3"
-      >
-        {{ uploadMessage }}
-      </v-alert>
-    </v-form>
-  </v-container>
-
-   <v-container>
-    <v-form @submit.prevent="uploadFile">
-      <v-file-input
-        label="Adjuntar su diagnóstico de convivencia pacifica en pofmato pdf"
-        v-model="selectedFile"
-        accept="*/*"
-        prepend-icon="mdi-paperclip"
-        outlined
-        dense
-      ></v-file-input>
-
-      <v-btn
-        :disabled="!selectedFile"
-        color="primary"
-        class="mt-4"
-        type="submit"
-      >
-        Subir archivo
-      </v-btn>
-
-      <v-alert
-        v-if="uploadMessage"
-        type="success"
-        class="mt-3"
-      >
-        {{ uploadMessage }}
-      </v-alert>
-    </v-form>
-  </v-container>
-
-<!--fin-->
-                            <v-col cols="12" md="12">
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Declaración jurada</span>
-                                </div>
-                            </v-col>
-
-                            <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.validado" label="Declaro que todos los datos que he registrado son verídicos y que pueden ser validados por las autoridades del Ministerio de Educación" required></v-checkbox>
-                            </v-col>
-
-                            <v-col cols="12" md="12" v-if="form.validado" >                                
-                                <v-dialog v-model="dialog" persistent width="auto" >
-                                    <template v-slot:activator="{ props }">                                    
-                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props">Registrar</v-btn>
-                                    </template>
-                                    <v-card>
-                                        <v-card-title class="text-h5">
-                                        Confirmar
-                                        </v-card-title>
-                                        <v-card-text>¿ Está seguro de guardar el registro ?</v-card-text>
-                                        <v-card-actions>
-                                            <v-spacer></v-spacer>
-                                            <v-btn color="green-darken-1" variant="text" @click="dialog = false"> Cancelar </v-btn>
-                                            <v-btn color="green-darken-1" variant="text" @click="save"> Aceptar </v-btn>
-                                        </v-card-actions>
-                                    </v-card>
-                                </v-dialog>
-                            </v-col>
-                        </v-row>
+                                <!-- Declaración jurada y envío -->
+                                <v-col cols="12">
+                                    <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Declaración jurada</span>
+                                    </div>
+                                </v-col>
+                                <v-col cols="12">
+                                    <v-checkbox v-model="form.validado" label="Declaro que todos los datos que he registrado son verídicos y que pueden ser validados por las autoridades del Ministerio de Educación" :disabled="isFormDisabled" required></v-checkbox>
+                                </v-col>
+                                <v-col cols="12" v-if="form.validado">
+                                    <v-dialog v-model="dialog" persistent width="auto">
+                                        <template v-slot:activator="{ props }">
+                                            <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props" :disabled="isFormDisabled">Registrar</v-btn>
+                                        </template>
+                                        <v-card>
+                                            <v-card-title class="text-h5">Confirmar</v-card-title>
+                                            <v-card-text>¿ Está seguro de guardar el registro ?</v-card-text>
+                                            <v-card-actions>
+                                                <v-spacer></v-spacer>
+                                                <v-btn color="grey-darken-1" variant="text" @click="dialog = false">Cancelar</v-btn>
+                                                <v-btn color="green-darken-1" variant="text" @click="save">Aceptar</v-btn>
+                                            </v-card-actions>
+                                        </v-card>
+                                    </v-dialog>
+                                </v-col>
+                            </v-row>
                         </v-container>
                     </v-form>
                 </v-card-item>
             </v-card>
         </v-col>
     </v-row>
-                                    
-    <v-dialog v-model="dialogSave" persistent width="auto" >
+
+    <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
-            <v-card-title class="text-h5">
-            Mensaje
-            </v-card-title>
-            <v-card-text>¿ Nuevo registro ? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
+            <v-card-title class="text-h5">Mensaje</v-card-title>
+            <v-card-text>Registro guardado. ¿Desea ingresar un nuevo registro? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica')"> NO </v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset"> SI </v-btn>
+                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">NO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="reset">SI</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
 </template>
+
+
+
+
