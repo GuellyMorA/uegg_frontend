@@ -4,7 +4,7 @@ import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
-import axios from 'axios';
+
 import Auth from '@/services/Auth'; 
 
 // import { useNavbarStore } from '@/stores/navbar';
@@ -18,9 +18,6 @@ const dialogSave = ref(false);
 const validationErrors = ref();
 const find = ref(false);
 const variusSie = ref(false);
-const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
- console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
-
 
 const comisionConstruccion = ref();
 const tema = ref();
@@ -62,14 +59,21 @@ const sieRules = [
     },
 ];
 
-let username: string | null ;
+let username= localStorage.getItem('username')
 
 
 // --- Variables de Estado Nuevas ---
-const SIE_CONSULTA = '12345678'; 
-const registroExiste = ref(false);
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+
+const registroExiste = ref(readOnlyVar);
 const isLoading = ref(true);
-const userSie = ref(localStorage.getItem('userSie') || SIE_CONSULTA); // Usar el SIE del usuario logueado
+
+const dataUE = JSON.parse(localStorage.getItem('dataUE'));
+
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+
+
 // --- Fin Variables de Estado Nuevas ---
 
 // --- Estado del Componente ---
@@ -81,7 +85,7 @@ const selectedFilePlan = ref(null);
 const uploadMessagePlan = ref('');
 const selectedFileDiagnostico = ref(null);
 const uploadMessageDiagnostico = ref('');
-
+const existeCiAndCodSie= ref<any | null>(null); 
 // Objeto reactivo con todos los campos del formulario y datos de prueba
 const form = ref({
     // Datos de Unidad Educativa
@@ -215,381 +219,563 @@ const form = ref({
 // --- Métodos ---
 
 
+// registrar el formulario para editar o crear un nuevo registro
+const registro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = true;
 
-
-
-
-// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
-const iniciarNuevoRegistro = () => {
-    console.log('Ingresar nuevo registro clickeado.');
-   isFormDisabled.value = false;
-};
-
-
-// Habilita el formulario para editar un registro existente y deshabilita el botón
-const modificarRegistro = () => {
-       console.log('modificar registro .');
-    isFormDisabled.value = false;
-};
-
-
-// Lógica para subir archivos (simulada)
-const uploadFilePlan = () => {
-    if (selectedFilePlan.value) {
-        uploadMessagePlan.value = `Archivo "${selectedFilePlan.value.name}" subido con éxito.`;
-        console.log('Subiendo Plan:', selectedFilePlan.value);
+    if (registroExiste.value ){
+       update();
     }
-};
-const uploadFileDiagnostico = () => {
-    if (selectedFileDiagnostico.value) {
-        uploadMessageDiagnostico.value = `Archivo "${selectedFileDiagnostico.value.name}" subido con éxito.`;
-        console.log('Subiendo Diagnóstico:', selectedFileDiagnostico.value);
+    else{
+     save();
     }
+
 };
+// --- Función  para obtener
+const findConstByCiAndUe = async () => {  
+    form.value.idUE= idUE;
+     form.value.username= username;
+     const tecnico = await ConvivenciaPacifica.findConstByCiAndUe(form.value).then((res) => {
+        if (res.status === 200) {
+            console.log('  findConstByCiAndUe   res : ', res.data);    
+            existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
+            if (existeCiAndCodSie.value.length === 1) {
 
-
-
-
-
-
-
-// --- Funciones Nuevas  para simular la consulta al endpoint de existencia del registro.---
-
-const checkRegistroExistence = async () => {
-    isLoading.value = true;
-    
-    // **AQUÍ DEBES REEMPLAZAR CON TU LLAMADA REAL AL ENDPOINT**
-    // Ejemplo de llamada real:
-    // const token = localStorage.getItem('authToken'); 
-    // const response = await ApiService.checkRegistro(userSie.value, token);
-    
-    try {
-        // --- SIMULACIÓN DE RESPUESTA ---
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simula latencia
-        
-        // La condición es: si el endpoint encuentra el SIE=12345678 (o el SIE del usuario), el registro EXISTE.
-        // Aquí simulamos que NO existe (para mostrar "Ingresar nuevo registro")
-        // **CAMBIA ESTE VALOR A 'true' o 'false' para probar**
-        const existe = false; 
-        
-        // Si el SIE del formulario coincide con el SIE requerido (o el de la sesión),
-        // consultamos si ya hay un registro.
-        if (userSie.value === SIE_CONSULTA) { 
-            registroExiste.value = existe; 
-        } else {
-            // Lógica si el SIE de la sesión es diferente al consultado
-            registroExiste.value = existe;
-        }
-
-        toast.info(`Estado del registro: ${registroExiste.value ? 'Existe' : 'No existe'}`, { autoClose: 2000 });
-
-    } catch (error) {
-        console.error('Error al verificar el registro:', error);
-        toast.error('Error al consultar el estado del registro.', { autoClose: 3000 });
-        registroExiste.value = false; // Asumir no existe en caso de error para no bloquear
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-
-
-
-
-
-onMounted(async() => {
-    checkRegistroExistence(); // Ejecutar la verificación al montar el componente
-
-    let user = JSON.parse(localStorage.getItem('user') || '');
-    if(user && user.codigo_sie){
-        form.value.sie = user.codigo_sie;
-        findInstitucionEducativa();
-        findMiembrosComisionConstruccion();
-        findActividadesPromocion();
-        username = localStorage.getItem('username') ;
-      //  form.value.vigenciaAprobacion=99;
-      //  form.value.fecha='01/01/2027';
-      //  form.value.fechaAprobacion='01/01/2028';
-  
-    }
-}); 
-
-const findInstitucionEducativa = async () => {
-    console.log("form.value.sie:" , form.value.sie);
-    const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
-
-    if(String(form.value.sie).length === 8){
-        const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
-           console.log("Respuesta del servidor:", res);
-             console.log("Tipo de res.data:", typeof res.data.data);
-            console.log("¿Es array res.data?:", Array.isArray(res.data.data));
-      const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
-                    // O también: ue => ue.codigo_sie.toString() === codigo_sie
-                    );
- console.log("Institución encontrada: ", data);
-        if(data){
-       form.value.departamentoId = data.departamento_codigo;
-        form.value.departamentoNombre = data.departamento;
-       // form.value.municipioId = data.municipio_codigo;
-        form.value.municipioNombre = data.distrito ;   // municipio;
-        form.value.unidadEducativa = data.nombre_unidad_educativa ;  // institucioneducativa;
-        form.value.nivel = data.nivel;
-        form.value.modalidad = data.dependencia;
-        form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
-            find.value = true;
-            institucionEducativa.value = data;
-            console.log("form.value.sie.length: ", form.value.sie.length);
+              localStorage.setItem('idConst',res.data[0].id);
+ return res.data[0].id;  
+            }else{
+              localStorage.setItem('idConst','0');
+  return 0;
+            }
+               
+            
            
+        } else {
+            toast.error('No se encontro una UE para el Director', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT
+            });
+           
+            return 0;
         }
-    } else {
-        institucionEducativa.value = null;
-        find.value = false;
-        form.value.departamentoId = null;
-        form.value.departamentoNombre = '';
-        form.value.municipioId = null;
-        form.value.municipioNombre = '';
-        form.value.unidadEducativa = '';
-        form.value.nivel = '';
-        form.value.modalidad = '';
-        form.value.director = '';
-        console.warn("No se encontró ninguna institución educativa para el SIE:", sie); 
+    }).catch(() => {
+        toast.error('Error de conexión con el servidor.', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT
+        });
+    });    
+    
+    return tecnico; 
+};
+
+ // Lógica para modificar un formulario
+const update = async () => {
+
+    console.log('Editando datos:', form.value);
+    dialog.value = false;
+    dialogSave.value = true;
+    isFormDisabled.value = true; // Deshabilita el formulario después de guardar
+
+    registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
+
+
+    if (!validateForm()) {
+        dialog.value = false;  
+        toast.info('Debe ingresar los datos requeridos', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        return false;
     }
-}; 
 
-const findMiembrosComisionConstruccion = async () => {
-    console.log(form.value.sie);
- if(String(form.value.sie).length === 8){
-    const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
-    console.log("findMiembrosComisionConstruccion res: ", res);
+    comisionConstruccion.value = {
+        1: {status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
+        2: {status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId},
+        3: {status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId},
+        4: {status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId},
+        5: {status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId}
+    };
 
-    res.data.map((data: {  id_comision_tipo: number; id_miembro_tipo: number; 
-                        }, index:  number) => {
-             form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion    
+    tema.value = {
+        1: {status: form.value.temaDerecho,         id: form.value.id_temaDerecho },
+        2: {status: form.value.temaNorma,           id: form.value.id_temaNorma},         
+        3: {status: form.value.temaDisciplinario,   id: form.value.id_temaDisciplinario}, 
+        4: {status: form.value.temaSancion,         id: form.value.id_temaSancion},       
+        5: {status: form.value.temaAdopcion,        id: form.value.id_temaAdopcion},      
+        6: {status: form.value.temaAlternativo,     id: form.value.id_temaAlternativo},   
+        7: {status: form.value.temaRemision,        id: form.value.id_temaRemision},      
+        8: {status: form.value.temaTaller,          id: form.value.id_temaTaller},        
+        9: {status: form.value.temaPromover,        id: form.value.id_temaPromover},      
+        10:{status: form.value.temaSeguimiento ,    id: form.value.id_temaSeguimiento   }
+    };
+
+    temaPromover.value = {
+        1: {status: form.value.temaPromover1,       id: form.value.id_temaPromover1},     
+        2: {status: form.value.temaPromover2,       id: form.value.id_temaPromover2},     
+        3: {status: form.value.temaPromover3,       id: form.value.id_temaPromover3},     
+        4: {status: form.value.temaPromover4,       id: form.value.id_temaPromover4},     
+        5: {status: form.value.temaPromover5,       id: form.value.id_temaPromover5},     
+        6: {status: form.value.temaPromover6,       id: form.value.id_temaPromover6},     
+        7: {status: form.value.temaPromover7,       id: form.value.id_temaPromover7},     
+        8: {status: form.value.temaPromover8,       id: form.value.id_temaPromover8},     
+        9: {status: form.value.temaPromover9,       id: form.value.id_temaPromover9}      
+   
+    };
+
+    temaDisciplinario.value = {
+        10:{status:  form.value.temaDisciplinarioCorrectivo,id: form.value.id_temaDisciplinarioCorrectivo},
+        11:{status:  form.value.temaDisciplinarioProcedimientoMarco,id: form.value.id_temaDisciplinarioProcedimientoMarco},
+        12:{status:  form.value.temaDisciplinarioProcedimientoAlternativo,id: form.value.id_temaDisciplinarioProcedimientoAlternativo},
+        13:{status:  form.value.temaDisciplinarioLineamiento,id: form.value.id_temaDisciplinarioLineamiento}
+    };
+
+    comisionAprobacion.value = {
+        1: {status: form.value.comisionAprobacionEstudiante, value: form.value.comisionAprobacionEstudianteNombre, id: form.value.comisionAprobacionEstudianteId},
+        2: {status: form.value.comisionAprobacionDirector, value: form.value.comisionAprobacionDirectorNombre, id: form.value.comisionAprobacionDirectorId},
+        3: {status: form.value.comisionAprobacionMaestro, value: form.value.comisionAprobacionMaestroNombre, id: form.value.comisionAprobacionMaestroId},
+        4: {status: form.value.comisionAprobacionPadre, value: form.value.comisionAprobacionPadreNombre, id: form.value.comisionAprobacionPadreId},
+        5: {status: form.value.comisionAprobacionOtro, value: form.value.comisionAprobacionOtroNombre, id: form.value.comisionAprobacionOtroId}
+    };
+
+    const payload1 = {
+        cod_ue: form.value.sie,
+        desc_ue: form.value.unidadEducativa, 
+        cod_sie: form.value.sie,
+        cod_rda_director: null,
+        cod_director: null,
+        nombres_director: form.value.director,
+        apellidos_director: form.value.director,
+    
+        cod_departamento: form.value.departamento_codigo  ,
+        desc_departamento: form.value.departamentoNombre ,
+        cod_municipio:  form.value.municipioId,
+        desc_municipio:  form.value.municipioNombre,
+        cod_nivel: 0 ,
+        desc_nivel: form.value.nivel ,
+        modalidad: form.value.modalidad,
+    
+        estado: 'MODIFICADO',
+       usu_cre: username,
+        fec_cre: new Date()
+    }
           
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===1  ){// estudiante
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionEstudianteNombre= res.data[index].nombres_miembro ; 
-         
-            form.value.comisionSocializacionEstudianteId= res.data[index].id_miembro  ; 
+    console.log('payload1: ',payload1);
+//  ueggPcpaUnidadEducativa
+    const save1 = await ConvivenciaPacifica.updateUnidadEducativa(idUE,payload1).then((res) => {
+        if(res.status === 200){
+            toast.info('Registro modificado correctamente', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT,
+            });
+            dialog.value = false;  
+            dialogSave.value = true; 
+            return res;
+        } else {
+            toast.error('Registro no modificado', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT,
+            });
+            return res;
         }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===1  ){// director
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionDirectorNombre= res.data[index].nombres_miembro  ;   
-           // form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionDirectorId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===1  ){// maestro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionMaestroNombre= res.data[index].nombres_miembro  ;  
-          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionMaestroId= res.data[index].id_miembro  ;   
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===1  ){// padres
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionPadreNombre= res.data[index].nombres_miembro  ;      
-          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionPadreId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===1  ){// otro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionOtroNombre= res.data[index].nombres_miembro  ;    
-         //   form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionOtroId= res.data[index].id_miembro  ; 
-        }
-       console.log(res.data[index]);
-
-       if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===2  ){// estudiante
-                   console.log("res.data[index].id_miembro : ", res.data[index].id_miembro  )
-            form.value.comisionAprobacionEstudianteNombre= res.data[index].nombres_miembro ; 
-            //form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionEstudianteId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===2  ){// director
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionDirectorNombre= res.data[index].nombres_miembro  ;   
-           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionDirectorId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===2  ){// maestro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionMaestroNombre= res.data[index].nombres_miembro  ;  
-          //  form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionMaestroId= res.data[index].id_miembro  ;   
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===2  ){// padres
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionPadreNombre= res.data[index].nombres_miembro  ;      
-           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionPadreId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===2  ){// otro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionOtroNombre= res.data[index].nombres_miembro  ;    
-         //   form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionOtroId= res.data[index].id_miembro  ; 
-        }
-       console.log(res.data[index]);
-
+    });
+        console.log("save1: ", save1);
+   
+    const dateParts = (form.value.fecha || '').split("/");
+    const dateParts2 = (form.value.fechaAprobacion || '').split("/"); 
     
+    const payload2 = {
+        id_pcpa_unidad_educativa: idUE,
+        fecha_registro:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), //new Date( form.value.fecha).toISOString(),
+        check_diagnostico_pcpa: form.value.registroAnterior,   
+        fecha_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+        vigencia_aprobacion : form.value.vigenciaAprobacion,
+
+        estado: 'MODIFICADO',
+        usu_cre: username,
+        fec_cre: new Date()
+    }
+ console.log("payload2: ", payload2);
+       //  ueggPcpaConstruccion
+  /*  const save2 = await ConvivenciaPacifica.updateContruccion(payload2).then((res) => {
+        if(res.status === 201){
+            toast.info('Registro guardado correctamente', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT,
+            });
+            dialog.value = false;  
+            dialogSave.value = true; 
+            return res;
+        } else {
+            toast.error('Registro no guardado', {
+                autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT,
+            });
+            return res;
+        }
+    });
+    console.log("save2: ", save2);
+   // console.log( comisionConstruccion.value);
+*/
+    console.log("ini bucle ");
+
+    let payload3 ;
+    let save3;
+     const constId = await findConstByCiAndUe();
+
+    await Object.keys(comisionConstruccion.value).map((item, key) => {
+        if(comisionConstruccion.value[item].value ){ //  ||  comisionConstruccion.value[item].length >0
+            console.log('comisionConstruccion item, key: ', item, key);
+
+        /*    payload3 = {
+                id_pcpa_construccion: constId,//save2.data.id,
+                id_pcpa_comision_tipo: 1,
+                id_pcpa_miembro_tipo: item,      //  id_miembro:  save2.data.id,
+                orden: key + 1,
+                nombres_miembro: comisionConstruccion.value[item].value,
+                apellidos_miembro: '', //comisionConstruccion.value[item].value, 
+                check_miembro_comision: comisionConstruccion.value[item].status,                    
+                estado: 'MODIFICADO' ,
+                usu_cre: username,
+                fec_cre: new Date()
+            }
+           console.log("payload3: ", payload3);
+           // ueggPcpaMiembroComision
+           save3 = ConvivenciaPacifica.updateMiembroComision(idUE,payload3).then((res) => {
+                if(res.status === 201){
+                    toast.info('Registro guardado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no modificado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+           console.log("save3: ", save3);
+*/
+      // cambiar a estado INACTIVO registros previos
+          /*  const delete1 =  ConvivenciaPacifica.deleteConstruccion(form.value.comisionSocializacionIdConstruccion).then((res) => {
+                if(res.status === 204){
+                    toast.info('Registro eliminado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no eliminado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+            
+            console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
+            if(!(comisionConstruccion.value[item].id  === undefined ) ){ 
+                const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionConstruccion.value[item].id).then((res) => {
+                    console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
+
+                    if(res.status === 204){
+                        toast.info('Registro eliminado correctamente', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        dialog.value = false;  
+                        dialogSave.value = true; 
+                        return res;
+                    } else {
+                        toast.error('Registro no eliminado', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        return res;
+                    }
+                });
+            }
+            */
+        }        
     });
 
-    if(res.data && res.data.length > 0){
-        let dateParts = ( res.data[0].fecha_registro || '').split("T");    //const dateParts2 = new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString()
-        dateParts = ( dateParts[0] ).split("-"); 
-        form.value.fecha =  dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
+    console.log("fin bucle ");
 
-        dateParts = ( res.data[0].fecha_aprobacion || '').split("T"); 
-        dateParts = ( dateParts[0]).split("-"); 
-        form.value.fechaAprobacion=    dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
-        form.value.vigenciaAprobacion=  res.data[0].vigencia_aprobacion;
-        form.value.registroAnterior=   res.data[0].check_diagnostico_pcpa;
-    }
-       miembrosComisionConstruccion.value = res.data[0];           
-        
-  } else {
-        miembrosComisionConstruccion.value = null;
-        find.value = false;
-        form.value.departamentoId = null;
-        form.value.departamentoNombre = '';
-        form.value.municipioId = null;
-        form.value.municipioNombre = '';
-        form.value.unidadEducativa = '';
-        form.value.nivel = '';
-        form.value.modalidad = '';
-        form.value.director = '';
-    }
-}; 
 
-const findActividadesPromocion = async () => {
-    console.log(form.value.sie);
+    console.log("ini bucle ");
+    let payload4;
+    let save4;
+    await Object.keys(tema.value).map((item, key) => {
+        if(tema.value[item].status){
+            console.log(item, key);
+            payload4 = {
+                id_pcpa_construccion: constId,//save2.data.id,
+                id_pcpa_actividades_tipo: item,                   
+                nivel: 1,
+                fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+                tiempo_vigencia: 0,
+                declaracion_jurada: true,                    
+                estado: 'MODIFICADO' ,
+                usu_cre: username,
+                fec_cre: new Date()
+            }
+           console.log("payload4: ", payload4);  
+            //  ueggPcpaActividadesPromocion
+            save4 = ConvivenciaPacifica.updateTarea(item,payload4).then((res) => {
+                if(res.status === 200){
+                    toast.info('Registro guardado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no modificado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+            console.log("save4: ", save4);
 
-    const res = await ConvivenciaPacifica.findActividadesPromocion(form.value.sie);
-    console.log("res", res);
-    res.data.map((data: {  nivel: number; id_pcpa_actividades_tipo: number; 
-                        }, index:  number) => {
-              console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===1  ){// temaDerecho
-            form.value.id_temaDerecho= res.data[index].id_actividades_promocion  ;     
-            form.value.temaDerecho= res.data[index].check_actividad_tipo ;      }
-         
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===2  ){   
-			form.value.id_temaNorma          = res.data[index].id_actividades_promocion        ; 		  
-			form.value.temaNorma          = res.data[index].check_actividad_tipo        ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===3  ){   // PROCEDIMIENTOS DISCIPLINARIOS
-			form.value.id_temaDisciplinario  = res.data[index].id_actividades_promocion; 		 
-			form.value.temaDisciplinario  = res.data[index].check_actividad_tipo;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===4  ){ 
-			form.value.id_temaSancion        = res.data[index].id_actividades_promocion      ; 		      
-			form.value.temaSancion        = res.data[index].check_actividad_tipo      ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===5  ){  
-			form.value.id_temaAdopcion       = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaAdopcion       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===6  ){   
-			form.value.id_temaAlternativo    = res.data[index].id_actividades_promocion  ; 		      
-			form.value.temaAlternativo    = res.data[index].check_actividad_tipo  ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===7  ){  
-			form.value.id_temaRemision       = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaRemision       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===8  ){ 
-			form.value.id_temaTaller         = res.data[index].id_actividades_promocion       ; 		        
-			form.value.temaTaller         = res.data[index].check_actividad_tipo       ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===9  ){    // ACTIVIDADES PARA PROMOVER LA CONVIVENCIA PACÍFICA
-			form.value.id_temaPromover       = res.data[index].id_actividades_promocion     ; 		          
-			form.value.temaPromover       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===10  ){  
-			form.value.id_temaSeguimiento    = res.data[index].id_actividades_promocion  ;        
-			form.value.temaSeguimiento    = res.data[index].check_actividad_tipo  ;   }                                                               
-                                                 		         
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===1  ){ 
-			form.value.id_temaPromover1      = res.data[index].id_actividades_promocion     ; 		       
-			form.value.temaPromover1       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===2  ){  
-			form.value.id_temaPromover2      = res.data[index].id_actividades_promocion     ; 		        
-			form.value.temaPromover2       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===3  ){   
-			form.value.id_temaPromover3      = res.data[index].id_actividades_promocion     ; 		        
-			form.value.temaPromover3       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===4  ){ 
-			form.value.id_temaPromover4      = res.data[index].id_actividades_promocion     ; 		          
-			form.value.temaPromover4       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===5  ){  
-			form.value.id_temaPromover5      = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaPromover5       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===6  ){  
-			form.value.id_temaPromover6      = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaPromover6       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===7  ){   
-			form.value.id_temaPromover7      = res.data[index].id_actividades_promocion     ; 		        
-			form.value.temaPromover7       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===8  ){   
-			form.value.id_temaPromover8      = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaPromover8       = res.data[index].check_actividad_tipo     ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===9  ){ 
-			form.value.id_temaPromover9      = res.data[index].id_actividades_promocion     ; 		         
-			form.value.temaPromover9       = res.data[index].check_actividad_tipo     ;   } 
-		
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===10  ){   //  PROCEDIMIENTOS DISCIPLINARIOS
-			form.value.id_temaDisciplinarioCorrectivo               = res.data[index].id_actividades_promocion                ; 	
-			form.value.temaDisciplinarioCorrectivo               = res.data[index].check_actividad_tipo                ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===11  ){ 
-			form.value.id_temaDisciplinarioProcedimientoMarco       = res.data[index].id_actividades_promocion        ; 		      
-			form.value.temaDisciplinarioProcedimientoMarco       = res.data[index].check_actividad_tipo        ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===12  ){ 
-			form.value.id_temaDisciplinarioProcedimientoAlternativo = res.data[index].id_actividades_promocion  ; 		  
-			form.value.temaDisciplinarioProcedimientoAlternativo = res.data[index].check_actividad_tipo  ;   } 
-        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===13  ){  
-			form.value.id_temaDisciplinarioLineamiento              = res.data[index].id_actividades_promocion               ; 		  
-			form.value.temaDisciplinarioLineamiento              = res.data[index].check_actividad_tipo               ;   } 
-
-       console.log(res.data[index]);
-
-    
+          /*  let delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( tema.value[item].id  === undefined ? 0 : tema.value[item].id ).then((res) => {
+                if(res.status === 204){
+                    toast.info('Registro eliminado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no eliminado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+*/
+            
+        }        
     });
+    console.log("fin bucle ");
 
-    actividadesPromocion.value = res.data[0];           
-        
 
-}; 
+    if(form.value.temaDisciplinario){
+        console.log("ini bucle 50");
+        let payload50;
+        let save50;
+        await Object.keys(temaDisciplinario.value).map((item, key) => {
+            if(temaDisciplinario.value[item].status){
+                console.log(item, key);
+                payload50 = {
+                    id_pcpa_construccion: constId, //save2.data.id,
+                    id_pcpa_actividades_tipo: item,                   
+                    nivel: 2,
+                    fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+                    tiempo_vigencia: 0,
+                    declaracion_jurada: true,                    
+                    estado: 'ACTIVO' ,
+                    usu_cre: username,
+                    fec_cre: new Date()
+                }
+                 console.log("payload50: ", payload50);
+                       // ueggPcpaActividadesPromocion
+                save50 = ConvivenciaPacifica.createTareaPromover(payload50).then((res) => {
+                    if(res.status === 201){
+                        toast.info('Registro guardado correctamente', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        dialog.value = false;  
+                        dialogSave.value = true; 
+                        return res;
+                    } else {
+                        toast.error('Registro no modificado', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        return res;
+                    }
+                });
+                console.log("save50: ", save50);
 
-const onDateInput = (event: any) => {
-    // Remove non-numeric characters from the input
-    const cleanedInput = event.target.value.replace(/\D/g, '');
+              /*  const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaDisciplinario.value[item].id  === undefined ? 0 : temaDisciplinario.value[item].id).then((res) => {
+                if(res.status === 204){
+                    toast.info('Registro eliminado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no eliminado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+*/
 
-    // Format the input as a date (DD-MM-YYYY)
-    if (cleanedInput.length <= 2) {
-        form.value.fecha = cleanedInput;
-    } else if (cleanedInput.length <= 4) {
-        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
-    } else if (cleanedInput.length <= 8) {
-        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
-    } else {
-        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
+            }        
+        });
+        console.log("fin bucle ");
+      
     }
+
+    if(form.value.temaPromover){
+        console.log("ini bucle ");
+        let payload5;
+        let save5;
+        await Object.keys(temaPromover.value).map((item, key) => {
+            if(temaPromover.value[item].status){
+                console.log(item, key);
+                payload5 = {
+                    id_pcpa_construccion: constId,//save2.data.id,
+                    id_pcpa_actividades_tipo: item,                   
+                    nivel: 2,
+                    fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+                    tiempo_vigencia: 0,
+                    declaracion_jurada: true,                    
+                    estado: 'ACTIVO' ,
+                    usu_cre:username,
+                    fec_cre: new Date()
+                }
+                 console.log("payload5: ", payload5);
+                        // ueggPcpaActividadesPromocion
+                save5 = ConvivenciaPacifica.createTareaPromover(payload5).then((res) => {
+                    if(res.status === 201){
+                        toast.info('Registro guardado correctamente', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        dialog.value = false;  
+                        dialogSave.value = true; 
+                        return res;
+                    } else {
+                        toast.error('Registro no modificado', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        return res;
+                    }
+                });
+                   console.log("save5: ", save5);
+             /*   const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaPromover.value[item].id === undefined ? 0 :  temaPromover.value[item].id ).then((res) => {
+                if(res.status === 204){
+                    toast.info('Registro eliminado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no eliminado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });*/
+
+
+            }        
+        });
+        console.log("fin bucle ");
+        console.log("save5", save5);
+    }
+
+    console.log("ini bucle ");
+    let payload6;
+    let save6;
+    await Object.keys(comisionAprobacion.value).map((item, key) => {
+        if(comisionAprobacion.value[item].value){ //  comisionConstruccion.value[item].status)
+            console.log('comisionAprobacion item, key: ', item, key);
+
+            payload6 = {
+                id_pcpa_construccion: constId,//save2.data.id,
+                id_pcpa_comision_tipo: 2,  // aprobacion
+                id_pcpa_miembro_tipo: item,
+                orden: key + 1,
+                nombres_miembro: comisionAprobacion.value[item].value,
+                apellidos_miembro: '',  // comisionAprobacion.value[item].value, 
+                check_miembro_comision: comisionAprobacion.value[item].status,                    
+                estado: 'ACTIVO' ,
+                usu_cre: username,
+                fec_cre: new Date()
+            }
+             console.log("payload6: ", payload6);
+                  //  ueggPcpaMiembroComision comisionAprobacion
+            save6 = ConvivenciaPacifica.createMiembroComisionAprobacion(payload6).then((res) => {
+                if(res.status === 201){
+                    toast.info('Registro guardado correctamente', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    dialog.value = false;  
+                    dialogSave.value = true; 
+                    return res;
+                } else {
+                    toast.error('Registro no guardado', {
+                        autoClose: 3000,
+                        position: toast.POSITION.TOP_RIGHT,
+                    });
+                    return res;
+                }
+            });
+            console.log("save6: ", save6);
+            console.log('comisionAprobacion.value[item].id: ',  comisionAprobacion.value[item].id);
+      
+           /* if(!(comisionAprobacion.value[item].id  === undefined ) ){ 
+                const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionAprobacion.value[item].id).then((res) => {
+                console.log('comisionAprobacion.value[item].id: ',  comisionAprobacion.value[item].id);
+                    if(res.status === 204){
+                        toast.info('Registro eliminado correctamente', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        dialog.value = false;  
+                        dialogSave.value = true; 
+                        return res;
+                    } else {
+                        toast.error('Registro no eliminado', {
+                            autoClose: 3000,
+                            position: toast.POSITION.TOP_RIGHT,
+                        });
+                        return res;
+                    }
+                });
+            }*/
+
+        }        
+    });
+    console.log("fin bucle ");
+    console.log("save6", save6);
+
+    console.log("fin");
+      
 };
 
-const onDateInputAprobacion = (event: any) => {
-    // Remove non-numeric characters from the input
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-
-    // Format the input as a date (DD-MM-YYYY)
-    if (cleanedInput.length <= 2) {
-        form.value.fechaAprobacion = cleanedInput;
-    } else if (cleanedInput.length <= 4) {
-        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
-    } else if (cleanedInput.length <= 8) {
-        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
-    } else {
-        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
-    }
-};
-    // Lógica para guardar el formulario (simulada)
+ // Lógica para guardar un nuevo formulario
 const save = async () => {
 
     console.log('Guardando datos:', form.value);
     dialog.value = false;
     dialogSave.value = true;
     isFormDisabled.value = true; // Deshabilita el formulario después de guardar
-    isFormDisabled.value = true; // Deshabilita el formulario después de guardar
+
     registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
 
 
@@ -1077,6 +1263,354 @@ const save = async () => {
 };
 
 
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+};
+
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
+
+
+// Lógica para subir archivos (simulada)
+const uploadFilePlan = () => {
+    if (selectedFilePlan.value) {
+        uploadMessagePlan.value = `Archivo "${selectedFilePlan.value.name}" subido con éxito.`;
+        console.log('Subiendo Plan:', selectedFilePlan.value);
+    }
+};
+const uploadFileDiagnostico = () => {
+    if (selectedFileDiagnostico.value) {
+        uploadMessageDiagnostico.value = `Archivo "${selectedFileDiagnostico.value.name}" subido con éxito.`;
+        console.log('Subiendo Diagnóstico:', selectedFileDiagnostico.value);
+    }
+};
+
+
+
+// --- Funciones Nuevas  para simular la consulta al endpoint de existencia del registro.---
+const XXXXcheckRegistroExistence = async () => {
+    isLoading.value = true;    
+    // const response = await ApiService.checkRegistro(userSie.value, token);    
+    try {        
+       //await new Promise(resolve => setTimeout(resolve, 800)); // Simula latencia       
+      
+        // consultamos si ya hay un registro.
+        if (readOnlyVar) { 
+              console.log("registro encontrado: ", '');  // false entonces NO existe, mostrar "Ingresar nuevo registro"
+          //  registroExiste = readOnlyVar; 
+        } else {
+            // Lógica si el SIE de la sesión es diferente al consultado
+           // registroExiste = readOnlyVar;
+        }
+
+        toast.info(`Estado del registro: ${registroExiste.value ? 'Existe' : 'No existe'}`, { autoClose: 2000 });
+
+    } catch (error) {
+        console.error('Error al verificar el registro:', error);
+        toast.error('Error al consultar el estado del registro.', { autoClose: 3000 });
+        registroExiste.value = false; // Asumir no existe en caso de error para no bloquear
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+
+
+
+onMounted(async() => {
+   // checkRegistroExistence(); // Ejecutar la verificación al montar el componente
+
+    let user = JSON.parse(localStorage.getItem('user') || '');
+    if(user && user.codigo_sie){
+        form.value.sie = user.codigo_sie;
+        findInstitucionEducativa();
+        findMiembrosComisionConstruccion();
+        findActividadesPromocion();
+        username = localStorage.getItem('username') ;
+      //  form.value.vigenciaAprobacion=99;
+      //  form.value.fecha='01/01/2027';
+      //  form.value.fechaAprobacion='01/01/2028';
+    isLoading.value = false;
+    }
+}); 
+
+const findInstitucionEducativa = async () => {
+    console.log("form.value.sie:" , form.value.sie);
+    const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
+
+    if(String(form.value.sie).length === 8){
+        const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
+           console.log("Respuesta del servidor:", res);
+             console.log("Tipo de res.data:", typeof res.data.data);
+            console.log("¿Es array res.data?:", Array.isArray(res.data.data));
+      const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
+                    // O también: ue => ue.codigo_sie.toString() === codigo_sie
+                    );
+        console.log("Institución encontrada: ", data);
+        if(data){
+       form.value.departamentoId = data.departamento_codigo;
+        form.value.departamentoNombre = data.departamento;
+       // form.value.municipioId = data.municipio_codigo;
+        form.value.municipioNombre = data.distrito ;   // municipio;
+        form.value.unidadEducativa = data.nombre_unidad_educativa ;  // institucioneducativa;
+        form.value.nivel = data.nivel;
+        form.value.modalidad = data.dependencia;
+        form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
+            find.value = true;
+            institucionEducativa.value = data;
+            console.log("form.value.sie.length: ", form.value.sie.length);
+           
+        }
+    } else {
+        institucionEducativa.value = null;
+        find.value = false;
+        form.value.departamentoId = null;
+        form.value.departamentoNombre = '';
+        form.value.municipioId = null;
+        form.value.municipioNombre = '';
+        form.value.unidadEducativa = '';
+        form.value.nivel = '';
+        form.value.modalidad = '';
+        form.value.director = '';
+        console.warn("No se encontró ninguna institución educativa para el SIE:", sie); 
+    }
+}; 
+
+const findMiembrosComisionConstruccion = async () => {
+    console.log(form.value.sie);
+ if(String(form.value.sie).length === 8){
+    const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
+    console.log("findMiembrosComisionConstruccion res: ", res);
+
+    res.data.map((data: {  id_comision_tipo: number; id_miembro_tipo: number; 
+                        }, index:  number) => {
+             form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion    
+          
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===1  ){// estudiante
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionSocializacionEstudianteNombre= res.data[index].nombres_miembro ; 
+         
+            form.value.comisionSocializacionEstudianteId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===1  ){// director
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionSocializacionDirectorNombre= res.data[index].nombres_miembro  ;   
+           // form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionSocializacionDirectorId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===1  ){// maestro
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionSocializacionMaestroNombre= res.data[index].nombres_miembro  ;  
+          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionSocializacionMaestroId= res.data[index].id_miembro  ;   
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===1  ){// padres
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionSocializacionPadreNombre= res.data[index].nombres_miembro  ;      
+          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionSocializacionPadreId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===1  ){// otro
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionSocializacionOtroNombre= res.data[index].nombres_miembro  ;    
+         //   form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionSocializacionOtroId= res.data[index].id_miembro  ; 
+        }
+       console.log(res.data[index]);
+
+       if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===2  ){// estudiante
+                   console.log("res.data[index].id_miembro : ", res.data[index].id_miembro  )
+            form.value.comisionAprobacionEstudianteNombre= res.data[index].nombres_miembro ; 
+            //form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionAprobacionEstudianteId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===2  ){// director
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionAprobacionDirectorNombre= res.data[index].nombres_miembro  ;   
+           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionAprobacionDirectorId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===2  ){// maestro
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionAprobacionMaestroNombre= res.data[index].nombres_miembro  ;  
+          //  form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionAprobacionMaestroId= res.data[index].id_miembro  ;   
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===2  ){// padres
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionAprobacionPadreNombre= res.data[index].nombres_miembro  ;      
+           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionAprobacionPadreId= res.data[index].id_miembro  ; 
+        }
+        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===2  ){// otro
+                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            form.value.comisionAprobacionOtroNombre= res.data[index].nombres_miembro  ;    
+         //   form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
+            form.value.comisionAprobacionOtroId= res.data[index].id_miembro  ; 
+        }
+       console.log(res.data[index]);
+
+    
+    });
+
+    if(res.data && res.data.length > 0){
+        let dateParts = ( res.data[0].fecha_registro || '').split("T");    //const dateParts2 = new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString()
+        dateParts = ( dateParts[0] ).split("-"); 
+        form.value.fecha =  dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
+
+        dateParts = ( res.data[0].fecha_aprobacion || '').split("T"); 
+        dateParts = ( dateParts[0]).split("-"); 
+        form.value.fechaAprobacion=    dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
+        form.value.vigenciaAprobacion=  res.data[0].vigencia_aprobacion;
+        form.value.registroAnterior=   res.data[0].check_diagnostico_pcpa;
+    }
+       miembrosComisionConstruccion.value = res.data[0];           
+        
+  } else {
+        miembrosComisionConstruccion.value = null;
+        find.value = false;
+        form.value.departamentoId = null;
+        form.value.departamentoNombre = '';
+        form.value.municipioId = null;
+        form.value.municipioNombre = '';
+        form.value.unidadEducativa = '';
+        form.value.nivel = '';
+        form.value.modalidad = '';
+        form.value.director = '';
+    }
+}; 
+
+const findActividadesPromocion = async () => {
+    console.log(form.value.sie);
+
+    const res = await ConvivenciaPacifica.findActividadesPromocion(form.value.sie);
+    console.log("res", res);
+    res.data.map((data: {  nivel: number; id_pcpa_actividades_tipo: number; 
+                        }, index:  number) => {
+              console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===1  ){// temaDerecho
+            form.value.id_temaDerecho= res.data[index].id_actividades_promocion  ;     
+            form.value.temaDerecho= res.data[index].check_actividad_tipo ;      }
+         
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===2  ){   
+			form.value.id_temaNorma          = res.data[index].id_actividades_promocion        ; 		  
+			form.value.temaNorma          = res.data[index].check_actividad_tipo        ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===3  ){   // PROCEDIMIENTOS DISCIPLINARIOS
+			form.value.id_temaDisciplinario  = res.data[index].id_actividades_promocion; 		 
+			form.value.temaDisciplinario  = res.data[index].check_actividad_tipo;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===4  ){ 
+			form.value.id_temaSancion        = res.data[index].id_actividades_promocion      ; 		      
+			form.value.temaSancion        = res.data[index].check_actividad_tipo      ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===5  ){  
+			form.value.id_temaAdopcion       = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaAdopcion       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===6  ){   
+			form.value.id_temaAlternativo    = res.data[index].id_actividades_promocion  ; 		      
+			form.value.temaAlternativo    = res.data[index].check_actividad_tipo  ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===7  ){  
+			form.value.id_temaRemision       = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaRemision       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===8  ){ 
+			form.value.id_temaTaller         = res.data[index].id_actividades_promocion       ; 		        
+			form.value.temaTaller         = res.data[index].check_actividad_tipo       ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===9  ){    // ACTIVIDADES PARA PROMOVER LA CONVIVENCIA PACÍFICA
+			form.value.id_temaPromover       = res.data[index].id_actividades_promocion     ; 		          
+			form.value.temaPromover       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===10  ){  
+			form.value.id_temaSeguimiento    = res.data[index].id_actividades_promocion  ;        
+			form.value.temaSeguimiento    = res.data[index].check_actividad_tipo  ;   }                                                               
+                                                 		         
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===1  ){ 
+			form.value.id_temaPromover1      = res.data[index].id_actividades_promocion     ; 		       
+			form.value.temaPromover1       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===2  ){  
+			form.value.id_temaPromover2      = res.data[index].id_actividades_promocion     ; 		        
+			form.value.temaPromover2       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===3  ){   
+			form.value.id_temaPromover3      = res.data[index].id_actividades_promocion     ; 		        
+			form.value.temaPromover3       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===4  ){ 
+			form.value.id_temaPromover4      = res.data[index].id_actividades_promocion     ; 		          
+			form.value.temaPromover4       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===5  ){  
+			form.value.id_temaPromover5      = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaPromover5       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===6  ){  
+			form.value.id_temaPromover6      = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaPromover6       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===7  ){   
+			form.value.id_temaPromover7      = res.data[index].id_actividades_promocion     ; 		        
+			form.value.temaPromover7       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===8  ){   
+			form.value.id_temaPromover8      = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaPromover8       = res.data[index].check_actividad_tipo     ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===9  ){ 
+			form.value.id_temaPromover9      = res.data[index].id_actividades_promocion     ; 		         
+			form.value.temaPromover9       = res.data[index].check_actividad_tipo     ;   } 
+		
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===10  ){   //  PROCEDIMIENTOS DISCIPLINARIOS
+			form.value.id_temaDisciplinarioCorrectivo               = res.data[index].id_actividades_promocion                ; 	
+			form.value.temaDisciplinarioCorrectivo               = res.data[index].check_actividad_tipo                ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===11  ){ 
+			form.value.id_temaDisciplinarioProcedimientoMarco       = res.data[index].id_actividades_promocion        ; 		      
+			form.value.temaDisciplinarioProcedimientoMarco       = res.data[index].check_actividad_tipo        ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===12  ){ 
+			form.value.id_temaDisciplinarioProcedimientoAlternativo = res.data[index].id_actividades_promocion  ; 		  
+			form.value.temaDisciplinarioProcedimientoAlternativo = res.data[index].check_actividad_tipo  ;   } 
+        if(res.data && res.data.length > 0 &&  data.nivel ===2 && data.id_pcpa_actividades_tipo===13  ){  
+			form.value.id_temaDisciplinarioLineamiento              = res.data[index].id_actividades_promocion               ; 		  
+			form.value.temaDisciplinarioLineamiento              = res.data[index].check_actividad_tipo               ;   } 
+
+       console.log(res.data[index]);
+
+    
+    });
+
+    actividadesPromocion.value = res.data[0];           
+        
+
+}; 
+
+const onDateInput = (event: any) => {
+    // Remove non-numeric characters from the input
+    const cleanedInput = event.target.value.replace(/\D/g, '');
+
+    // Format the input as a date (DD-MM-YYYY)
+    if (cleanedInput.length <= 2) {
+        form.value.fecha = cleanedInput;
+    } else if (cleanedInput.length <= 4) {
+        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
+    } else if (cleanedInput.length <= 8) {
+        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
+    } else {
+        form.value.fecha = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
+    }
+};
+
+const onDateInputAprobacion = (event: any) => {
+    // Remove non-numeric characters from the input
+    const cleanedInput = event.target.value.replace(/\D/g, '');
+
+    // Format the input as a date (DD-MM-YYYY)
+    if (cleanedInput.length <= 2) {
+        form.value.fechaAprobacion = cleanedInput;
+    } else if (cleanedInput.length <= 4) {
+        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
+    } else if (cleanedInput.length <= 8) {
+        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
+    } else {
+        form.value.fechaAprobacion = cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
+    }
+};
+
+
+
     // Lógica para reiniciar el formulario 
 const reset = () => {   
     console.log('Limpiar formulario.');
@@ -1419,7 +1953,7 @@ const validateForm = () => {
                                             <v-card-actions>
                                                 <v-spacer></v-spacer>
                                                 <v-btn color="grey-darken-1" variant="text" @click="dialog = false">Cancelar</v-btn>
-                                                <v-btn color="green-darken-1" variant="text" @click="save">Aceptar</v-btn>
+                                                <v-btn color="green-darken-1" variant="text" @click="registro">Aceptar</v-btn>
                                             </v-card-actions>
                                         </v-card>
                                     </v-dialog>

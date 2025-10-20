@@ -4,24 +4,54 @@ const apiUrl = import.meta.env;
 
 class ConvivenciaPacificaService {
      
-  findByCiAndCodSie(data){  // en back  getByCiAndCodSie  -->  ueggPcpaUnidadEducativa/ci/:ci/codSie/:codSie
+  findUeByCiAndCodSie(data){  // en back  getByCiAndCodSie  -->  ueggPcpaUnidadEducativa/ci/:ci/codSie/:codSie
     return  http.get(`/ueggPcpaUnidadEducativa/ci/${data.username}/codSie/${data.codSie}`,).catch((error) => {
         return error;
     });
 
   }
-ueggPcpaUnidadEducativa
-  create(data){
-    return http.post(`/ueggPcpaUnidadEducativa`, data).catch((error) => {
-        return error.response;
-    });
-  }
 
+  findConstByCiAndUe(data){  // en back 
+    return  http.get(`/ueggPcpaConstruccion/ci/${data.username}/idUE/${data.idUE}`,).catch((error) => {
+        return error;
+    });
+
+  }
   createContruccion(data){
     return http.post(`/ueggPcpaConstruccion`, data).catch((error) => {
         return error;
     });
   } 
+  deleteConstruccion(id){
+    return http.put(`/ueggPcpaConstruccionDel/${id}`).catch((error) => {
+        return error;
+    });
+  } 
+
+  create(data){//  ueggPcpaUnidadEducativa
+    return http.post(`/ueggPcpaUnidadEducativa`, data).catch((error) => {
+        return error.response;
+    });
+  }
+  updateUnidadEducativa(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaUnidadEducativa/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaUnidadEducativa  url  : ", error.config.url,data);
+
+        return error;
+    });
+
+  }
+
 
   createMiembroComision(data){
     return http.post(`/ueggPcpaMiembroComision`, data).catch((error) => {
@@ -29,11 +59,24 @@ ueggPcpaUnidadEducativa
     });
   } 
 
-  deleteConstruccion(id){
-    return http.put(`/ueggPcpaConstruccionDel/${id}`).catch((error) => {
+  updateMiembroComision(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaMiembroComision/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaMiembroComision  url  : ", error.config.url,data);
+
         return error;
     });
-  } 
+
+  }
 
   deleteMiembroComision(id){
     return http.put(`/ueggPcpaMiembroComisionDel/${id}`).catch((error) => {
@@ -59,7 +102,24 @@ ueggPcpaUnidadEducativa
         return error;
     });
   } 
+  updateTarea(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaActividadesPromocion/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaActividadesPromocion  url  : ", error.config.url,data);
 
+        return error;
+    });
+
+  }
   createTareaPromover(data){
     return http.post(`/ueggPcpaActividadesPromocion`, data).catch((error) => {
         return error;
@@ -88,43 +148,6 @@ ueggPcpaUnidadEducativa
 
 
 
-  
-    // try {
-    //   const user = localStorage.getItem('user');
-    //   Create a new Axios instance with custom configurations
-    //   return http.create({
-    //     method:'get',
-    //     url: `/institucioneducativa/${id}`,
-    //     baseURL: 'https://api.infraestructura.sie.gob.bo/sie',
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       'Authorization': 'Bearer ' + user.token
-    //     },
-    //     timeout: 1500,
-    //   });
-    // } catch (error) {
-    //   console.error("Error al buscar la unidad educativa", error);
-    //   return error;
-    // }
-
-  findInstitucionEducativa(id){
-    
-    //const user = JSON.parse(localStorage.getItem('user'));
-    return http2({
-      method:'get',
-      url: `/institucioneducativa/${id}`,
-      baseURL: apiUrl.VITE_API_URL_SIE,
-      headers: {
-        "Content-Type": "application/json",
-      'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvX2lkIjo5MjQ5ODEyMiwiaWF0IjoxNjY4OTQ5OTAwfQ.ikRwPaCK379wwZgujPX1l1EGodkbSVdPI9RsrXRJQFo",
-       
-      },
-    })
-    .catch((error) => {
-        return error;
-    });
-
-  }
 
 
 
@@ -169,7 +192,44 @@ ueggPcpaUnidadEducativa
  
    }
 
+  
+    // try {
+    //   const user = localStorage.getItem('user');
+    //   Create a new Axios instance with custom configurations
+    //   return http.create({
+    //     method:'get',
+    //     url: `/institucioneducativa/${id}`,
+    //     baseURL: 'https://api.infraestructura.sie.gob.bo/sie',
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       'Authorization': 'Bearer ' + user.token
+    //     },
+    //     timeout: 1500,
+    //   });
+    // } catch (error) {
+    //   console.error("Error al buscar la unidad educativa", error);
+    //   return error;
+    // }
 
+
+  findInstitucionEducativa(id){
+    
+    //const user = JSON.parse(localStorage.getItem('user'));
+    return http2({
+      method:'get',
+      url: `/institucioneducativa/${id}`,
+      baseURL: apiUrl.VITE_API_URL_SIE,
+      headers: {
+        "Content-Type": "application/json",
+      'Authorization': "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3VhcmlvX2lkIjo5MjQ5ODEyMiwiaWF0IjoxNjY4OTQ5OTAwfQ.ikRwPaCK379wwZgujPX1l1EGodkbSVdPI9RsrXRJQFo",
+       
+      },
+    })
+    .catch((error) => {
+        return error;
+    });
+
+  }
 }
 
 export default new ConvivenciaPacificaService();

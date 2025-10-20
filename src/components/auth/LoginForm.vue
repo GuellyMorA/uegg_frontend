@@ -40,18 +40,21 @@ const finalizeLogin = (sie: string, dependencia: string, username: string, typeU
 };
 
 // --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
-const findByCiAndCodSie = async () => {  
+const findUeByCiAndCodSie = async () => {  
     form.value.codSie= localStorage.getItem('codigo_sie') || '';
-     const tecnico = await ConvivenciaPacifica.findByCiAndCodSie(form.value).then((res) => {
+     const tecnico = await ConvivenciaPacifica.findUeByCiAndCodSie(form.value).then((res) => {
         if (res.status === 200) {
-            console.log('  findByCiAndCodSie   res : ', res.data);    
+            console.log('  findUeByCiAndCodSie   res : ', res.data);    
             existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
             if (existeCiAndCodSie.value.length === 1) {
               //  finalizeLogin('','FISCAL', form.value.username,'directorUE','CONV_PACIF:true|REPORTES:[allEdit:true]');
               localStorage.setItem('existeEnBD','true');
+              localStorage.setItem('dataUE',JSON.stringify(existeCiAndCodSie.value));
              // return true; 
             }else{
               localStorage.setItem('existeEnBD','false');
+             localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+
             }
                
             return true;   
@@ -167,7 +170,7 @@ const selectUnidadEducativa = async () => {
         localStorage.setItem('dependencia',  'DIRECTOR');
         localStorage.setItem('permiso',  'write');
         showModal.value = false; // Cierra el modal
-        const byCiAndCodSie = await findByCiAndCodSie();
+        const byCiAndCodSie = await findUeByCiAndCodSie();
         
           console.log('existeEnBD', localStorage.getItem('existeEnBD')); 
             console.log('user : ', localStorage.getItem('user'));  
