@@ -590,7 +590,7 @@ const update = async () => {
                 }
                  console.log("payload50: ", payload50);
                        // ueggPcpaActividadesPromocion
-                save50 = ConvivenciaPacifica.createTareaPromover(payload50).then((res) => {
+                save50 = ConvivenciaPacifica.updateTareaPromover(item,payload50).then((res) => {
                     if(res.status === 201){
                         toast.info('Registro guardado correctamente', {
                             autoClose: 3000,
@@ -654,7 +654,7 @@ const update = async () => {
                 }
                  console.log("payload5: ", payload5);
                         // ueggPcpaActividadesPromocion
-                save5 = ConvivenciaPacifica.createTareaPromover(payload5).then((res) => {
+                save5 = ConvivenciaPacifica.updateTareaPromover(item,payload5).then((res) => {
                     if(res.status === 201){
                         toast.info('Registro guardado correctamente', {
                             autoClose: 3000,
@@ -718,7 +718,7 @@ const update = async () => {
             }
              console.log("payload6: ", payload6);
                   //  ueggPcpaMiembroComision comisionAprobacion
-            save6 = ConvivenciaPacifica.createMiembroComisionAprobacion(payload6).then((res) => {
+            save6 = ConvivenciaPacifica.updateMiembroComisionAprobacion(item,payload6).then((res) => {
                 if(res.status === 201){
                     toast.info('Registro guardado correctamente', {
                         autoClose: 3000,

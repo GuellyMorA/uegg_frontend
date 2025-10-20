@@ -111,7 +111,7 @@ class ConvivenciaPacificaService {
         "Content-Type": "application/json",
         'Authorization': apiUrl.VITE_API_URL_TOKEN
       },      
-    data:data
+    data:data    
     })
     .catch((error) => {
       console.log("error ueggPcpaActividadesPromocion  url  : ", error.config.url,data);
@@ -125,13 +125,47 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
+  updateTareaPromover(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaActividadesPromocion/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data    
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaActividadesPromocion  url  : ", error.config.url,data);
 
+        return error;
+    });
+
+  }
   createMiembroComisionAprobacion(data){
     return http.post(`/ueggPcpaMiembroComision`, data).catch((error) => {
         return error;
     });
   } 
+updateMiembroComisionAprobacion(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaMiembroComision/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data    
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaMiembroComision  url  : ", error.config.url,data);
 
+        return error;
+    });
+
+  }
 
   deleteActividadesPromocion(id){
     return http.put(`/ueggPcpaActividadesPromocionDel/${id}`).catch((error) => {
