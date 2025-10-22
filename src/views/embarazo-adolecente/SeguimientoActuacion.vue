@@ -21,9 +21,35 @@ const construccion = ref();
 const institucionEducativa = ref();
 const estudiante = ref();
 let username: string | null ;
+// --- Variables de Estado Nuevas ---
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+const registroExiste = ref(readOnlyVar);
+const isLoading = ref(true);
+const dataUE = JSON.parse(localStorage.getItem('dataUE'));
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
+const isFormDisabledFromNew = ref(true); 
+
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+   isFormDisabledFromNew.value = false;
+};
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
 
 onMounted(async() => {
     username = localStorage.getItem('username') ;
+         isLoading.value = false;
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
@@ -298,6 +324,8 @@ const validateForm = () => {
 };
 
 </script>
+
+
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -305,6 +333,17 @@ const validateForm = () => {
                 <v-card-item>
                     <div class="d-sm-flex align-center justify-space-between pt-sm-2">
                         <v-card-title class="text-h5">Seguimiento y actuación para cumplimiento de derechos</v-card-title>
+           <div class="d-flex align-center">
+                            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
+                            
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
+                                Ingresar nuevo registro
+                            </v-btn>
+
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+                                Modificar registro
+                            </v-btn>
+                            </div>
                     </div>
                     <v-form v-model="valid" class="">
                         <v-container>
@@ -315,19 +354,19 @@ const validateForm = () => {
                                 </div>
                             </v-col>
                             <v-col cols="12" md="4">
-                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details v-on:keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
+                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details  :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4">
-                                <v-text-field v-model="form.codigoRude" label="Código Rude" required hide-details v-on:keyup="findEstudianteEmbarazada" ></v-text-field>
+                                <v-text-field v-model="form.codigoRude" label="Código Rude" required hide-details v-on:keyup="findEstudianteEmbarazada" :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.estudiante" label="Nombres y Apellidos" hide-details required :readonly="findEstudiante"></v-text-field>
+                                <v-text-field v-model="form.estudiante" label="Nombres y Apellidos" hide-details required :readonly="findEstudiante" :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -337,77 +376,71 @@ const validateForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.semanaGestacion" type="number" label="Tiempo de gestación al momento de registrar el caso (semanas)" hide-details ></v-text-field>
+                                <v-text-field v-model="form.semanaGestacion" type="number" label="Tiempo de gestación al momento de registrar el caso (semanas)" hide-details :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.numeroEmbarazo" type="number" label="Número de embarazos (cuántas veces estuvo embarazada incluyendo este embarazo)" hide-details ></v-text-field>
+                                <v-text-field v-model="form.numeroEmbarazo" type="number" label="Número de embarazos (cuántas veces estuvo embarazada incluyendo este embarazo)" hide-details :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.recibeControlPrenatal" label="¿ Recibe control prenatal ?" required></v-checkbox> <!-- modificiación-->
+                                <v-checkbox v-model="form.recibeControlPrenatal" label="¿ Recibe control prenatal ?" required :disabled="isFormDisabled"></v-checkbox> </v-col>
+
+                            <v-col cols="12" md="4" >
+                                <v-checkbox v-model="form.requierePermisoControl" label="¿ Requiere permiso para asistir a los controles de salud ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.requierePermisoControl" label="¿ Requiere permiso para asistir a los controles de salud ?" required></v-checkbox>
+                                <v-checkbox v-model="form.requiereCuidadoPostparto" label="¿ Requiere cuidado especial en el embarazo o el postparto ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.requiereCuidadoPostparto" label="¿ Requiere cuidado especial en el embarazo o el postparto ?" required></v-checkbox>
+                                <v-checkbox v-model="form.consideracionActividades" label="¿ La U.E. aplica adecuaciones curriculares ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.consideracionActividades" label="¿ La U.E. aplica adecuaciones curriculares ?" required></v-checkbox>
+                                <v-text-field v-model="form.fechaEstimadaParto" label="Fecha estimada de parto"  @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                            </v-col>
+                        
+                            <v-col cols="12" md="4" >
+                                <v-text-field v-model="form.fechaBajaPrenatal" label="Fecha de baja prenatal"  @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fechaEstimadaParto" label="Fecha estimada de parto"  @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
-                            </v-col>
-                          
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fechaBajaPrenatal" label="Fecha de baja prenatal"  @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.fechaConclusionPostnatal" label="Fecha de conclusión de baja postnatal"  @input="onDateInput3" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fechaConclusionPostnatal" label="Fecha de conclusión de baja postnatal"  @input="onDateInput3" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fechaRetorno" label="Fecha efectiva de retorno a la U.E. de la baja postnatal"  @input="onDateInput4" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.fechaRetorno" label="Fecha efectiva de retorno a la U.E. de la baja postnatal"  @input="onDateInput4" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
                             
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.requiereBajaMedica" label="¿ Número de días con baja médica ?" required></v-checkbox>
+                                <v-checkbox v-model="form.requiereBajaMedica" label="¿ Número de días con baja médica ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.nacidoVivo" label="¿ El embarazo concluyó con nacido vivo/a ?" required></v-checkbox>
+                                <v-checkbox v-model="form.nacidoVivo" label="¿ El embarazo concluyó con nacido vivo/a ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
 
-                      
+                        
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.edadProgenitor" type="number" label="Edad del progenitor (años)" hide-details ></v-text-field>
+                                <v-text-field v-model="form.edadProgenitor" type="number" label="Edad del progenitor (años)" hide-details :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.progenitorMismaUnidadEducativa" label="El progenitor del bebe ¿ Es estudiante de la U.E. ?" required></v-checkbox>
+                                <v-checkbox v-model="form.progenitorMismaUnidadEducativa" label="El progenitor del bebe ¿ Es estudiante de la U.E. ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
 
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.progenitorConoceEmbarazo" label="Los progenitores/tutores ¿ Están al tanto del embarazo ?" required></v-checkbox>
+                                <v-checkbox v-model="form.progenitorConoceEmbarazo" label="Los progenitores/tutores ¿ Están al tanto del embarazo ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
-       <!--                     <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.bajaMedica" label="¿ Baja médica ?" required></v-checkbox>
-                            </v-col>    modificacion-->
-
-                            <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.permisoControlPrenatal" label="¿ Número de días con permiso para controles pre y postnatal  ?" required></v-checkbox> <!--mod tipo tipo de dato modificacion-->
-                            </v-col>
+                   <v-col cols="12" md="4" >
+                                <v-checkbox v-model="form.permisoControlPrenatal" label="¿ Número de días con permiso para controles pre y postnatal  ?" required :disabled="isFormDisabled"></v-checkbox> </v-col>
 
                             <v-col cols="12" md="12">                                
                                 <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
@@ -416,11 +449,11 @@ const validateForm = () => {
                             </v-col>
                         
                             <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.fechaInicioBajaPrenatal" label="Inicio de baja prenatal"  @input="onDateInput5" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.fechaInicioBajaPrenatal" label="Inicio de baja prenatal"  @input="onDateInput5" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
                             
                             <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.fechaFinBajaPostnatal" label="Fin de baja postnatal"  @input="onDateInput6" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.fechaFinBajaPostnatal" label="Fin de baja postnatal"  @input="onDateInput6" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -430,17 +463,17 @@ const validateForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="12" >
-                                <v-text-field v-model="form.director" :counter="10" label="Persona asignada al seguimiento (Nombre del Director de U.E.)" hide-details required ></v-text-field>
+                                <v-text-field v-model="form.director" :counter="10" label="Persona asignada al seguimiento (Nombre del Director de U.E.)" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.accionesSeguimiento" label="¿ Cuenta con acciones de seguimiento al desarrollo de adecuaciones curriculares y metodologías ?" required></v-checkbox>
+                                <v-checkbox v-model="form.accionesSeguimiento" label="¿ Cuenta con acciones de seguimiento al desarrollo de adecuaciones curriculares y metodologías ?" required :disabled="isFormDisabled"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="12" >                                
                                 <v-dialog v-model="dialog" persistent width="auto" >
-                                    <template v-slot:activator="{ props }">                                    
-                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props">Registrar</v-btn>
+                                    <template v-slot:activator="{ props }">                                
+                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props" :disabled="isFormDisabled">Registrar</v-btn>
                                     </template>
                                     <v-card>
                                         <v-card-title class="text-h5">
@@ -462,7 +495,7 @@ const validateForm = () => {
             </v-card>
         </v-col>
     </v-row>
-                                    
+                                
     <v-dialog v-model="dialogSave" persistent width="auto" >
         <v-card>
             <v-card-title class="text-h5">

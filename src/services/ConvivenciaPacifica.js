@@ -10,18 +10,43 @@ class ConvivenciaPacificaService {
     });
 
   }
-
   findConstByCiAndUe(data){  // en back 
     return  http.get(`/ueggPcpaConstruccion/ci/${data.username}/idUE/${data.idUE}`,).catch((error) => {
         return error;
     });
 
   }
+
+  
+  getContruccionUnidadEducativa(data){
+    return http.get(`/ueggPcpaConstruccion/${data}`,).catch((error) => {
+        return error;
+    });
+  }
+
+
   createContruccion(data){
     return http.post(`/ueggPcpaConstruccion`, data).catch((error) => {
         return error;
     });
   } 
+  updateContruccion(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaConstruccion/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaConstruccion  url  : ", error.config.url,data);
+        return error;
+    });
+  }
+
   deleteConstruccion(id){
     return http.put(`/ueggPcpaConstruccionDel/${id}`).catch((error) => {
         return error;
@@ -46,10 +71,8 @@ class ConvivenciaPacificaService {
     })
     .catch((error) => {
       console.log("error ueggPcpaUnidadEducativa  url  : ", error.config.url,data);
-
         return error;
     });
-
   }
 
 
@@ -58,7 +81,6 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
-
   updateMiembroComision(id,data) {
     return http2({
       method:'put',
@@ -77,19 +99,16 @@ class ConvivenciaPacificaService {
     });
 
   }
-
   deleteMiembroComision(id){
     return http.put(`/ueggPcpaMiembroComisionDel/${id}`).catch((error) => {
         return error;
     });
   } 
-
   listMiembroComision(data){
     return http.get(`/listMiembrosComision/${data}`).catch((error) => {
         return error;
     });
   } 
-
   findMiembrosComisionConstruccion(data){
     return  http.get(`/ueggPcpaMiembroComisionList/${data}`,).catch((error) => {
         return error;
@@ -120,6 +139,21 @@ class ConvivenciaPacificaService {
     });
 
   }
+  
+  findActividadesPromocion(data){
+     return  http.get(`/ueggPcpaActividadesPromocionList/${data}`,).catch((error) => {
+         return error;
+     });
+ 
+   }
+  findActividadesEjecutadas(data){
+     return  http.get(`/ueggPcpaActividadesEjecutadasList/${data}`,).catch((error) => {
+         return error;
+     });
+ 
+   }
+
+  
   createTareaPromover(data){
     return http.post(`/ueggPcpaActividadesPromocion`, data).catch((error) => {
         return error;
@@ -148,7 +182,7 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
-updateMiembroComisionAprobacion(id,data) {
+ updateMiembroComisionAprobacion(id,data) {
     return http2({
       method:'put',
       url: `/ueggPcpaMiembroComision/${id}`,
@@ -166,23 +200,6 @@ updateMiembroComisionAprobacion(id,data) {
     });
 
   }
-
-  deleteActividadesPromocion(id){
-    return http.put(`/ueggPcpaActividadesPromocionDel/${id}`).catch((error) => {
-        return error;
-    });
-  } 
-
-
-  deleteActividadesEjecutadas(id){
-    return http.put(`/ueggPcpaActividadesEjecutadasDel/${id}`).catch((error) => {
-        return error;
-    });
-  } 
-
-
-
-
 
 
   
@@ -204,46 +221,7 @@ updateMiembroComisionAprobacion(id,data) {
     });
   }
 
-  getContruccionUnidadEducativa(data){
-    return http.get(`/ueggPcpaConstruccion/${data}`,).catch((error) => {
-        return error;
-    });
-  }
-
-
   
-  findActividadesPromocion(data){
-     return  http.get(`/ueggPcpaActividadesPromocionList/${data}`,).catch((error) => {
-         return error;
-     });
- 
-   }
-
-  findActividadesEjecutadas(data){
-     return  http.get(`/ueggPcpaActividadesEjecutadasList/${data}`,).catch((error) => {
-         return error;
-     });
- 
-   }
-
-  
-    // try {
-    //   const user = localStorage.getItem('user');
-    //   Create a new Axios instance with custom configurations
-    //   return http.create({
-    //     method:'get',
-    //     url: `/institucioneducativa/${id}`,
-    //     baseURL: 'https://api.infraestructura.sie.gob.bo/sie',
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       'Authorization': 'Bearer ' + user.token
-    //     },
-    //     timeout: 1500,
-    //   });
-    // } catch (error) {
-    //   console.error("Error al buscar la unidad educativa", error);
-    //   return error;
-    // }
 
 
   findInstitucionEducativa(id){
@@ -267,3 +245,20 @@ updateMiembroComisionAprobacion(id,data) {
 }
 
 export default new ConvivenciaPacificaService();
+    // try {
+    //   const user = localStorage.getItem('user');
+    //   Create a new Axios instance with custom configurations
+    //   return http.create({
+    //     method:'get',
+    //     url: `/institucioneducativa/${id}`,
+    //     baseURL: 'https://api.infraestructura.sie.gob.bo/sie',
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //       'Authorization': 'Bearer ' + user.token
+    //     },
+    //     timeout: 1500,
+    //   });
+    // } catch (error) {
+    //   console.error("Error al buscar la unidad educativa", error);
+    //   return error;
+    // }

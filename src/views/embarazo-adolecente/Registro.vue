@@ -64,8 +64,37 @@ const sieRules = [
     },
 ];
 
+// --- Variables de Estado Nuevas ---
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+const registroExiste = ref(readOnlyVar);
+const isLoading = ref(true);
+const dataUE = JSON.parse(localStorage.getItem('dataUE'));
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
+const isFormDisabledFromNew = ref(true); 
+
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+   isFormDisabledFromNew.value = false;
+};
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
+
+
 onMounted(async() => {
     username = localStorage.getItem('username') ;
+      isLoading.value = false;
+
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
@@ -338,6 +367,7 @@ const validateConfirmForm = () => {
 
 
 </script>
+
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -345,6 +375,18 @@ const validateConfirmForm = () => {
                 <v-card-item>
                     <div class="d-sm-flex align-center justify-space-between pt-sm-2">
                         <v-card-title class="text-h5">Registro de estudiante embarazada</v-card-title>
+                            <div class="d-flex align-center">
+                            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
+                            
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
+                                Ingresar nuevo registro
+                            </v-btn>
+
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+                                Modificar registro
+                            </v-btn>
+                            </div>
+
                     </div>
                     <v-form v-model="valid" class="">
                         <v-container>
@@ -355,31 +397,31 @@ const validateConfirmForm = () => {
                                 </div>
                             </v-col>
                             <v-col cols="12" md="4">
-                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details v-on:keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
+                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="find" ></v-text-field>
+                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details required :readonly="true"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.nivel" label="Nivel" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.nivel" label="Nivel" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.modalidad" label="" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.modalidad" label="" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.director" label="Director" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.director" label="Director" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">
@@ -388,78 +430,57 @@ const validateConfirmForm = () => {
                                 </div>
                             </v-col>
 
-                            <!-- <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.reporteNombre1" label="Reporte 1" hide-details required></v-text-field>
-                            </v-col>
-
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.reporteNombre2" label="Reporte 2" hide-details required></v-text-field>
+                                <v-select v-model="form.reporteNombre1" :items="personaReporteTipo" item-title="name" item-value="id" label="Reporte 1" return-object :disabled="isFormDisabledFromNew"></v-select>
                             </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.reporteNombre3" label="Reporte 3" hide-details required></v-text-field>
-                            </v-col> -->
-
-                            <v-col cols="12" md="4" >
-                                <v-select v-model="form.reporteNombre1" :items="personaReporteTipo" item-title="name" item-value="id" label="Reporte 1" return-object></v-select>
-                            </v-col>
-<!--
-                            <v-col cols="12" md="4" >
-                                <v-select v-model="form.reporteNombre2" :items="personaReporteTipo" item-title="name" item-value="id" label="Reporte 2" return-object></v-select>
-                            </v-col>
-
-                            <v-col cols="12" md="4" >
-                                <v-select v-model="form.reporteNombre3" :items="personaReporteTipo" item-title="name" item-value="id" label="Reporte 3" return-object></v-select>
-                            </v-col>
--->                           
-                            <v-col cols="12" md="12">
+                             <v-col cols="12" md="12">
                                 <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
                                     <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos de la estudiante embarazada</span>
                                 </div>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteCodigoRude" label="Código RUDE" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteCodigoRude" label="Código RUDE" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-text-field v-model="form.estudianteCedulaIdentidad" label="Cédula de Identidad" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteCedulaIdentidad" label="Cédula de Identidad" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-text-field v-model="form.estudianteComplemento" label="Complemento" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteComplemento" label="Complemento" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteFechaNacimiento" label="DD/MM/AAAA" @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteFechaNacimiento" label="DD/MM/AAAA" @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudiantePaterno" label="Apellido Paterno" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudiantePaterno" label="Apellido Paterno" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteMaterno" label="Apellido Materno" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteMaterno" label="Apellido Materno" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteNombre" label="Nombre(s)" hide-details required></v-text-field>
+                                <v-text-field v-model="form.estudianteNombre" label="Nombre(s)" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteNivel" label="Nivel" hide-details required :readonly="true"></v-text-field>
+                                <v-text-field v-model="form.estudianteNivel" label="Nivel" hide-details required :readonly="true" :disabled="isFormDisabledFromNew"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteGrado" label="Grado" hide-details required :readonly="true"></v-text-field>
+                                <v-text-field v-model="form.estudianteGrado" label="Grado" hide-details required :readonly="true" :disabled="isFormDisabledFromNew"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.estudianteEdad" label="Edad" type="number" min="0" hide-details required :readonly="true"></v-text-field>
+                                <v-text-field v-model="form.estudianteEdad" label="Edad" type="number" min="0" hide-details required :readonly="true" :disabled="isFormDisabledFromNew"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-checkbox v-model="form.dispacidad" label="¿ La adolescente tiene discapacidad ?" required></v-checkbox>
+                                <v-checkbox v-model="form.dispacidad" label="¿ La adolescente tiene discapacidad ?" required :disabled="isFormDisabledFromNew"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="8" v-if="form.dispacidad" >
@@ -468,13 +489,13 @@ const validateConfirmForm = () => {
                                         ¿ Qué tipo de discapacidad tiene ?
                                     </v-col>
                                     <v-col cols="12" md="6" >
-                                        <v-checkbox v-model="form.dispacidadCognitiva" label="Cognitiva" required></v-checkbox>
-                                        <v-checkbox v-model="form.dispacidadVisual" label="Visual" required></v-checkbox>  
-                                        <v-checkbox v-model="form.dispacidadAuditiva" label="Auditiva" required></v-checkbox> 
+                                        <v-checkbox v-model="form.dispacidadCognitiva" label="Cognitiva" required :disabled="isFormDisabledFromNew"></v-checkbox>
+                                        <v-checkbox v-model="form.dispacidadVisual" label="Visual" required :disabled="isFormDisabledFromNew"></v-checkbox> 
+                                        <v-checkbox v-model="form.dispacidadAuditiva" label="Auditiva" required :disabled="isFormDisabledFromNew"></v-checkbox> 
                                     </v-col>
                                     <v-col cols="12" md="6" > 
-                                        <v-checkbox v-model="form.dispacidadMotriz" label="Motriz" required></v-checkbox>  
-                                        <v-checkbox v-model="form.dispacidadOtro" label="Otro" required></v-checkbox>  
+                                        <v-checkbox v-model="form.dispacidadMotriz" label="Motriz" required :disabled="isFormDisabledFromNew"></v-checkbox> 
+                                        <v-checkbox v-model="form.dispacidadOtro" label="Otro" required :disabled="isFormDisabledFromNew"></v-checkbox> 
                                     </v-col>
                                 </v-row>
                             </v-col>
@@ -486,13 +507,13 @@ const validateConfirmForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.unionTemprana" label="La adolescente actualmente está casada o convive en pareja" required></v-checkbox>
+                                <v-checkbox v-model="form.unionTemprana" label="La adolescente actualmente está casada o convive en pareja" required :disabled="isFormDisabledFromNew"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="12"  >                                
                                 <v-dialog v-model="dialog" persistent width="auto" >
-                                    <template v-slot:activator="{ props }">                                    
-                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props">Registrar</v-btn>
+                                    <template v-slot:activator="{ props }">                                
+                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props" :disabled="isFormDisabledFromNew">Registrar</v-btn>
                                     </template>
                                     <v-card>
                                         <v-card-title class="text-h5">
@@ -514,7 +535,7 @@ const validateConfirmForm = () => {
             </v-card>
         </v-col>
     </v-row>
-                                    
+                                
     <v-dialog v-model="dialogSave" persistent width="auto" >
         <v-card>
             <v-card-title class="text-h5">

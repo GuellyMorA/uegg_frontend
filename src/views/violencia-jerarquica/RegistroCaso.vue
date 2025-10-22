@@ -52,8 +52,33 @@ const form: any = ref({
     agresorCodigoRda:null,
     agresorNombre:null
 });
+// --- Variables de Estado Nuevas ---
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+const registroExiste = ref(readOnlyVar);
+const isLoading = ref(true);
+const dataUE = JSON.parse(localStorage.getItem('dataUE'));
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
 
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
+const isFormDisabledFromNew = ref(true); 
+
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+   isFormDisabledFromNew.value = false;
+};
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
 onMounted(async() => {
+         isLoading.value = false;
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.numeroCaso = crearCodigoUnico(10);
@@ -449,219 +474,359 @@ const crearCodigoUnico = (longitud: number) => {
 };
 
 </script>
+
 <template>
-    <v-row v-if="false">    
-        <v-col cols="12" lg="12" sm="12">
-            <v-card elevation="10" class="withbg">
-                <v-card-item>
-                    <div class="d-sm-flex align-center justify-space-between pt-sm-2">
-                        <v-card-title class="text-h5">Búsqueda de caso</v-card-title>
-                    </div>
-                    <v-form v-model="valid" class="">
-                        <v-container>
-                        <v-row>
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="formSearch.codigoRude" density="compact" variant="solo" label="Código RUDE" append-inner-icon="mdi-magnify" single-line hide-details  @click:append-inner="searchCasoCodigoRude" ></v-text-field>
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="formSearch.codigoRda" density="compact" variant="solo" label="Código RDA" append-inner-icon="mdi-magnify" single-line hide-details  @click:append-inner="searchCasoCodigoRda" ></v-text-field>
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="formSearch.usuario" density="compact" variant="solo" label="Usuario" append-inner-icon="mdi-magnify" single-line hide-details  @click:append-inner="searchVictimaUsuario" ></v-text-field>
-                            </v-col>
-                        </v-row>
-                        </v-container>
-                    </v-form>
-                </v-card-item>
-            </v-card>
-        </v-col>
-    </v-row>
-    <v-row v-if="list">    
-        <v-col cols="12" lg="12" sm="12">
-            <v-card elevation="10" class="withbg">
-                <v-card-item>
-                    <div class="d-sm-flex align-center justify-space-between pt-sm-2 mb-3">
-                        <v-card-title class="text-h5">Casos</v-card-title>
-                    </div>
-                    <v-data-table :headers="headers" :items-per-page="5" :items="list" density="comfortable" item-key="name">
-                        <template v-slot:item.actions="{ item }">
-                            <v-icon size="small" class="me-2" @click="viewItem(item)">mdi-eye</v-icon>
-                        </template>
-                    </v-data-table>
-                </v-card-item>
-            </v-card>
-        </v-col>
-    </v-row>
-    <v-row>    
-        <v-col cols="12" lg="12" sm="12">
-            <v-card elevation="10" class="withbg">
-                <v-card-item>
-                    <div class="d-sm-flex align-center justify-space-between pt-sm-2">
-                        <v-card-title class="text-h5">Registro del caso de violencia </v-card-title>
-                    </div>
-                    <v-form v-model="valid" class="">
-                        <v-container>
-                        <v-row>
-                            
-                            <v-col cols="12" md="12">                                
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos de la víctima</span>
-                                </div>
-                            </v-col>
+    <v-row v-if="false">    
+        <v-col cols="12" lg="12" sm="12">
+            <v-card elevation="10" class="withbg">
+                <v-card-item>
+                    <div class="d-sm-flex align-center justify-space-between pt-sm-2">
+                        <v-card-title class="text-h5">Búsqueda de caso</v-card-title>
+                    </div>
+                    <v-form v-model="valid" class="">
+                        <v-container>
+                        <v-row>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="formSearch.codigoRude" 
+                                    density="compact" 
+                                    variant="solo" 
+                                    label="Código RUDE" 
+                                    append-inner-icon="mdi-magnify" 
+                                    single-line 
+                                    hide-details 
+                                    @click:append-inner="searchCasoCodigoRude" 
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="formSearch.codigoRda" 
+                                    density="compact" 
+                                    variant="solo" 
+                                    label="Código RDA" 
+                                    append-inner-icon="mdi-magnify" 
+                                    single-line 
+                                    hide-details 
+                                    @click:append-inner="searchCasoCodigoRda"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="formSearch.usuario" 
+                                    density="compact" 
+                                    variant="solo" 
+                                    label="Usuario" 
+                                    append-inner-icon="mdi-magnify" 
+                                    single-line 
+                                    hide-details 
+                                    @click:append-inner="searchVictimaUsuario"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                        </v-row>
+                        </v-container>
+                    </v-form>
+                </v-card-item>
+            </v-card>
+        </v-col>
+    </v-row>
+    <v-row v-if="list">    
+        <v-col cols="12" lg="12" sm="12">
+            <v-card elevation="10" class="withbg">
+                <v-card-item>
+                    <div class="d-sm-flex align-center justify-space-between pt-sm-2 mb-3">
+                        <v-card-title class="text-h5">Casos</v-card-title>
+                    </div>
+                    <v-data-table :headers="headers" :items-per-page="5" :items="list" density="comfortable" item-key="name">
+                        <template v-slot:item.actions="{ item }">
+                            <v-icon size="small" class="me-2" @click="viewItem(item)" :disabled="isFormDisabled">mdi-eye</v-icon>
+                        </template>
+                    </v-data-table>
+                </v-card-item>
+            </v-card>
+        </v-col>
+    </v-row>
+    <v-row>    
+        <v-col cols="12" lg="12" sm="12">
+            <v-card elevation="10" class="withbg">
+                <v-card-item>
+                    <div class="d-sm-flex align-center justify-space-between pt-sm-2">
+                        <v-card-title class="text-h5">Registro del caso de violencia </v-card-title>
+                             <div class="d-flex align-center">
+                            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
+                            
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
+                                Ingresar nuevo registro
+                            </v-btn>
 
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="form.victimaCodigoRude" label="Código RUDE" append-inner-icon="mdi-magnify" hide-details @click:append-inner="searchVictima" ></v-text-field>
-                            </v-col>
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+                                Modificar registro
+                            </v-btn>
+                            </div>
+                    </div>
+                    <v-form v-model="valid" class="">
+                        <v-container>
+                        <v-row>
+                            
+                            <v-col cols="12" md="12">                                
+                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos de la víctima</span>
+                                </div>
+                            </v-col>
 
-                            <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.victimaNombre" label="Nombre y Apellido" @input="onDateInput1" placeholder="Nombre y apellidos" hide-details required :readonly="true"></v-text-field>
-                            </v-col>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="form.victimaCodigoRude" 
+                                    label="Código RUDE" 
+                                    append-inner-icon="mdi-magnify" 
+                                    hide-details 
+                                    @click:append-inner="searchVictima" 
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
-                            <v-col cols="12" md="12">                                
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos del agresor</span>
-                                </div>
-                            </v-col>                            
+                            <v-col cols="12" md="8" >
+                                <v-text-field 
+                                    v-model="form.victimaNombre" 
+                                    label="Nombre y Apellido" 
+                                    @input="onDateInput1" 
+                                    placeholder="Nombre y apellidos" 
+                                    hide-details 
+                                    required 
+                                    :readonly="true"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="form.agresorCodigoRda" label="Código RDA" append-inner-icon="mdi-magnify" hide-details @click:append-inner="searchAgresor" ></v-text-field>
-                            </v-col>
+                            <v-col cols="12" md="12">                                
+                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos del agresor</span>
+                                </div>
+                            </v-col>                            
 
-                            <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.agresorNombre" label="Nombre y Apellido" @input="onDateInput1" placeholder="Nombre y apellidos" hide-details required :readonly="true"></v-text-field>
-                            </v-col>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="form.agresorCodigoRda" 
+                                    label="Código RDA" 
+                                    append-inner-icon="mdi-magnify" 
+                                    hide-details 
+                                    @click:append-inner="searchAgresor"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+
+                            <v-col cols="12" md="8" >
+                                <v-text-field 
+                                    v-model="form.agresorNombre" 
+                                    label="Nombre y Apellido" 
+                                    @input="onDateInput1" 
+                                    placeholder="Nombre y apellidos" 
+                                    hide-details 
+                                    required 
+                                    :readonly="true"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
 
-                            <v-col cols="12" md="12">                                
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos del caso</span>
-                                </div>
-                            </v-col>
-                            <v-col cols="12" md="4">
-                                <v-text-field v-model="form.numeroCaso" :rules="sieRules" :counter="10" label="Número de caso" required hide-details></v-text-field>
-                            </v-col>
+                            <v-col cols="12" md="12">                                
+                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Datos del caso</span>
+                                </div>
+                            </v-col>
+                            <v-col cols="12" md="4">
+                                <v-text-field 
+                                    v-model="form.numeroCaso" 
+                                    :rules="sieRules" 
+                                    :counter="10" 
+                                    label="Número de caso" 
+                                    required 
+                                    hide-details
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.fechaAgresion" label="Fecha de la agresión" @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
-                            </v-col>
-                            
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.numeroAgresor" type="number" label="Número de agresores" hide-details required></v-text-field>
-                            </v-col>
-                            
-                            <v-col cols="12" md="6" >
-                                <v-checkbox v-model="form.comunicacionTutor" label="¿ Se comunicó el hecho a los progenitores o tutores ?" required></v-checkbox>
-                            </v-col>
-                            
-                            <v-col cols="12" md="3" >
-                                <v-text-field v-model="form.comunicacionTutorNombre" label="Nombre del progenitor/a o tutor/a" hide-details required v-if="form.comunicacionTutor"></v-text-field>
-                            </v-col>
-                            
-                            <v-col cols="12" md="3" >
-                                <v-text-field v-model="form.comunicacionTutorFecha" label="Fecha de la comunicación" @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required v-if="form.comunicacionTutor"></v-text-field>
-                            </v-col>
+                            <v-col cols="12" md="4" >
+                                <v-text-field 
+                                    v-model="form.fechaAgresion" 
+                                    label="Fecha de la agresión" 
+                                    @input="onDateInput1" 
+                                    placeholder="DD/MM/AAAA" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            
+                            <v-col cols="12" md="4" >
+                                <v-text-field 
+                                    v-model="form.numeroAgresor" 
+                                    type="number" 
+                                    label="Número de agresores" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            
+                            <v-col cols="12" md="6" >
+                                <v-checkbox 
+                                    v-model="form.comunicacionTutor" 
+                                    label="¿ Se comunicó el hecho a los progenitores o tutores ?" 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-checkbox>
+                            </v-col>
+                            
+                            <v-col cols="12" md="3" >
+                                <v-text-field 
+                                    v-model="form.comunicacionTutorNombre" 
+                                    label="Nombre del progenitor/a o tutor/a" 
+                                    hide-details 
+                                    required 
+                                    v-if="form.comunicacionTutor"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            
+                            <v-col cols="12" md="3" >
+                                <v-text-field 
+                                    v-model="form.comunicacionTutorFecha" 
+                                    label="Fecha de la comunicación" 
+                                    @input="onDateInput2" 
+                                    placeholder="DD/MM/AAAA" 
+                                    hide-details 
+                                    required 
+                                    v-if="form.comunicacionTutor"
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
-                            <v-col cols="12" md="12" >
-                                <v-text-field v-model="form.descripcionBreve" label="Breve descripción del hecho" hide-details required></v-text-field>
-                            </v-col>
-                            
-                            <v-col cols="12" md="12">
-                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Tipo de violencia</span>
-                                </div>
-                            </v-col>
+                            <v-col cols="12" md="12" >
+                                <v-text-field 
+                                    v-model="form.descripcionBreve" 
+                                    label="Breve descripción del hecho" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
+                            
+                            <v-col cols="12" md="12">
+                                <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
+                                    <span class="bg-surface position-relative text-subtitle-1 text-grey100">Tipo de violencia</span>
+                                </div>
+                            </v-col>
 
-                            <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.violenciaFisica"  label="Violencia física" hide-details required></v-checkbox>
-                            </v-col>
-                            <!--
-                            <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.violenciaFisicaGravedad"  label="Gravedad" hide-details required v-if="form.violenciaFisica"></v-text-field>
-                            </v-col>
-                            -->
-                            <!-- MODIFICADO 20241001 -->
-                            <!-- <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.violenciaFisicaValoracion" label="Valoración del hecho" hide-details required v-if="form.violenciaFisica"></v-text-field>
-                            </v-col> -->
+                            <v-col cols="12" md="12" >
+                                <v-checkbox 
+                                    v-model="form.violenciaFisica"  
+                                    label="Violencia física" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-checkbox>
+                            </v-col>
+                                                                                                                <v-col cols="12" md="12" v-if="form.violenciaFisica">
+                                <v-text-field 
+                                    v-model="form.violenciaFisicaDescripcion" 
+                                    label="Descripción del hecho y daño" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>
 
-                            <v-col cols="12" md="12" v-if="form.violenciaFisica">
-                                <v-text-field v-model="form.violenciaFisicaDescripcion" label="Descripción del hecho y daño" hide-details required ></v-text-field>
-                            </v-col>
+                                                        <v-col cols="12" md="12" >
+                                <v-checkbox 
+                                    v-model="form.violenciaPsicologica"  
+                                    label="Violencia psicológica" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-checkbox>
+                            </v-col>
 
-                            <!-- MODIFICADO 20241001 -->
-                            <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.violenciaPsicologica"  label="Violencia psicológica" hide-details required></v-checkbox>
-                            </v-col>
+                                                                                                                <v-col cols="12" md="12" v-if="form.violenciaPsicologica">
+                                <v-text-field 
+                                    v-model="form.violenciaPsicologicaDescripcion" 
+                                    label="Descripción del hecho y daño" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>      
 
-                            <!-- <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.violenciaPsicologicaGravedad"  label="Gravedad" hide-details required v-if="form.violenciaPsicologica"></v-text-field>
-                            </v-col> -->
+                                                        <v-col cols="12" md="12" >
+                                <v-checkbox 
+                                    v-model="form.violenciaSexual" 
+                                    label="Violencia sexual" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-checkbox>
+                            </v-col>
 
-                            <!-- MODIFICADO 20241001 -->
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.violenciaPsicologicaValoracion" label="Valoración del hecho" hide-details required v-if="form.violenciaPsicologica"></v-text-field>
-                            </v-col> -->
+                                                                                                                                            <v-col cols="12" md="12" v-if="form.violenciaSexual">
+                                <v-text-field 
+                                    v-model="form.violenciaSexualDescripcion" 
+                                    label="Descripción del hecho y daño" 
+                                    hide-details 
+                                    required
+                                    :disabled="isFormDisabled"
+                                ></v-text-field>
+                            </v-col>   
 
-                            <v-col cols="12" md="12" v-if="form.violenciaPsicologica">
-                                <v-text-field v-model="form.violenciaPsicologicaDescripcion" label="Descripción del hecho y daño" hide-details required ></v-text-field>
-                            </v-col>      
-
-                            <!-- MODIFICADO 20241001 -->
-                            <v-col cols="12" md="12" >
-                                <v-checkbox v-model="form.violenciaSexual" label="Violencia sexual" hide-details required></v-checkbox>
-                            </v-col>
-
-                            <!-- <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.violenciaSexualGravedad"  label="Gravedad" hide-details required v-if="form.violenciaSexual"></v-text-field>
-                            </v-col> -->
-
-                            <!-- MODIFICADO 20241001 -->
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.violenciaSexualValoracion" label="Valoración del hecho" hide-details required v-if="form.violenciaSexual"></v-text-field>
-                            </v-col> -->
-
-                            <!-- MODIFICADO 20241001 -->
-                            <v-col cols="12" md="12" v-if="form.violenciaSexual">
-                                <v-text-field v-model="form.violenciaSexualDescripcion" label="Descripción del hecho y daño" hide-details required ></v-text-field>
-                            </v-col>   
-
-                            <v-col cols="12" md="12" >                                
-                                <v-dialog v-model="dialog" persistent width="auto" >
-                                    <template v-slot:activator="{ props }">                                    
-                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props">Registrar</v-btn>
-                                    </template>
-                                    <v-card>
-                                        <v-card-title class="text-h5">
-                                        Confirmar
-                                        </v-card-title>
-                                        <v-card-text>¿ Está seguro de guardar el registro ?</v-card-text>
-                                        <v-card-actions>
-                                            <v-spacer></v-spacer>
-                                            <v-btn color="green-darken-1" variant="text" @click="dialog = false"> Cancelar </v-btn>
-                                            <v-btn color="green-darken-1" variant="text" @click="save"> Aceptar </v-btn>
-                                        </v-card-actions>
-                                    </v-card>
-                                </v-dialog>
-                            </v-col>
-                        </v-row>
-                        </v-container>
-                    </v-form>
-                </v-card-item>
-            </v-card>
-        </v-col>
-    </v-row>
-                                    
-    <v-dialog v-model="dialogSave" persistent width="auto" >
-        <v-card>
-            <v-card-title class="text-h5">
-            Mensaje
-            </v-card-title>
-            <v-card-text>¿ Nuevo registro ? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
-            <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn color="green-darken-1" variant="text" @click="router.push('/violencia/jerarquica')"> NO </v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset"> SI </v-btn>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
+                            <v-col cols="12" md="12" >                                
+                                <v-dialog v-model="dialog" persistent width="auto" :disabled="isFormDisabled">
+                                    <template v-slot:activator="{ props }">                                    
+                                        <v-btn 
+                                            size="large" 
+                                            rounded="pill" 
+                                            color="primary" 
+                                            class="rounded-pill" 
+                                            block 
+                                            type="button" 
+                                            flat 
+                                            v-bind="props"
+                                            :disabled="isFormDisabled"
+                                        >Registrar</v-btn>
+                                    </template>
+                                    <v-card>
+                                        <v-card-title class="text-h5">
+                                        Confirmar
+                                        </v-card-title>
+                                        <v-card-text>¿ Está seguro de guardar el registro ?</v-card-text>
+                                        <v-card-actions>
+                                            <v-spacer></v-spacer>
+                                            <v-btn color="green-darken-1" variant="text" @click="dialog = false" :disabled="isFormDisabled"> Cancelar </v-btn>
+                                            <v-btn color="green-darken-1" variant="text" @click="save" :disabled="isFormDisabled"> Aceptar </v-btn>
+                                        </v-card-actions>
+                                    </v-card>
+                                </v-dialog>
+                            </v-col>
+                        </v-row>
+                        </v-container>
+                    </v-form>
+                </v-card-item>
+            </v-card>
+        </v-col>
+    </v-row>
+                                    
+    <v-dialog v-model="dialogSave" persistent width="auto" :disabled="isFormDisabled">
+        <v-card>
+            <v-card-title class="text-h5">
+            Mensaje
+            </v-card-title>
+            <v-card-text>¿ Nuevo registro ? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="green-darken-1" variant="text" @click="router.push('/violencia/jerarquica')" :disabled="isFormDisabled"> NO </v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="reset" :disabled="isFormDisabled"> SI </v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
 </template>
+

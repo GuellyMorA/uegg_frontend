@@ -54,9 +54,7 @@ const findUeByCiAndCodSie = async () => {
             }else{
               localStorage.setItem('existeEnBD','false');
              localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
-
-            }
-               
+            }               
             return true;   
            
         } else {

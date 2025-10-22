@@ -22,6 +22,18 @@ const comisionSocializacion = ref();
 const comisionImplementacion = ref();
 const actividadesEjecucion = ref();
 
+const sieRules = [
+    (value: any) => {
+        if (value) return true
+        return 'El SIE es requerido'
+    },
+    (value: any) => {
+        if (value?.length === 8) return true
+        return 'El código SIE requiere 8 dígitos.'
+    },
+];
+
+let username: string | null ;
 const form: any = ref({
     sie: null,
     unidadEducativa: '',
@@ -64,28 +76,55 @@ const form: any = ref({
     validado: false
 });
 
-const sieRules = [
-    (value: any) => {
-        if (value) return true
-        return 'El SIE es requerido'
-    },
-    (value: any) => {
-        if (value?.length === 8) return true
-        return 'El código SIE requiere 8 dígitos.'
-    },
-];
+// --- Variables de Estado Nuevas ---
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+const registroExiste = ref(readOnlyVar);
+const isLoading = ref(true);
+const dataUE = JSON.parse(localStorage.getItem('dataUE'));
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
 
-let username: string | null ;
+
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
+const isFormDisabledFromNew = ref(true); 
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+    console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+   isFormDisabledFromNew.value = false;
+};
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
+
+// registrar el formulario para editar o crear un nuevo registro
+const registro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = true;
+
+    if (registroExiste.value ){
+       update();
+    }
+    else{
+     save();
+    }
+
+};
 
 onMounted(async() => {
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
-        const resInst = await findInstitucionEducativa();
+        //const resInst = await findInstitucionEducativa();
         const resMiem = await findMiembroComision();
         const resAct = await findActividadesEjecutadas();
         username = localStorage.getItem('username') ;
-
+        isLoading.value = false;
     }
 
 
@@ -693,6 +732,7 @@ const validateForm = () => {
 };
 
 </script>
+
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -700,17 +740,30 @@ const validateForm = () => {
                 <v-card-item>
                     <div class="d-sm-flex align-center justify-space-between pt-sm-2">
                         <v-card-title class="text-h5">Socialización e implementación </v-card-title>
+                           <div class="d-flex align-center">
+                            <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
+                            
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
+                                Ingresar nuevo registro
+                            </v-btn>
+
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+                                Modificar registro
+                            </v-btn>
+                            </div>
+
+
                     </div>
                     <v-form v-model="valid" class="">
                         <v-container>
                         <v-row>
                             
                             <v-col cols="12" md="4">
-                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details v-on:keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
+                                <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="8" >
-                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="find"></v-text-field>
+                                <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="true" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -724,43 +777,43 @@ const validateForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" :disabled="false"></v-checkbox>
+                                <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" :disabled="isFormDisabledFromNew"></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -774,43 +827,43 @@ const validateForm = () => {
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionImplementacionEstudiante" label="Estudiantes" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionImplementacionEstudiante" label="Estudiantes" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionImplementacionDirector" label="Director(a)" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionImplementacionDirector" label="Director(a)" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionImplementacionMaestro" label="Maestro(a)" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionImplementacionMaestro" label="Maestro(a)" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionImplementacionPadre" label="Padres/Madres" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionImplementacionPadre" label="Padres/Madres" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
-                                <v-checkbox v-model="form.comisionImplementacionOtro" label="Otros" :disabled="false" ></v-checkbox>
+                                <v-checkbox v-model="form.comisionImplementacionOtro" label="Otros" :disabled="isFormDisabledFromNew" ></v-checkbox>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="false" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -823,86 +876,66 @@ const validateForm = () => {
                                 Actividad 1
                             </v-col>
 
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.actividad1" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad1" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object></v-select>
+                                <v-select v-model="form.actividad1" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad1Fecha" label="Fecha"  @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.actividad1Fecha" label="Fecha"  @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
                                 Actividad 2
                             </v-col>
 
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.actividad2" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad2" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object></v-select>
+                                <v-select v-model="form.actividad2" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad2Fecha" label="Fecha"  @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.actividad2Fecha" label="Fecha"  @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
                                 Actividad 3
                             </v-col>
 
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.actividad3" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad3" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object></v-select>
+                                <v-select v-model="form.actividad3" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad3Fecha" label="Fecha"  @input="onDateInput3" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.actividad3Fecha" label="Fecha"  @input="onDateInput3" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
                                 Actividad 4
                             </v-col>
 
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.actividad4" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad4" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object></v-select>
+                                <v-select v-model="form.actividad4" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad4Fecha" label="Fecha"  @input="onDateInput4" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.actividad4Fecha" label="Fecha"  @input="onDateInput4" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
                                 Actividad 5
                             </v-col>
 
-                            <!-- <v-col cols="12" md="6" >
-                                <v-text-field v-model="form.actividad5" label="Nombre" hide-details required></v-text-field>
-                            </v-col> -->
-
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad5" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object></v-select>
+                                <v-select v-model="form.actividad5" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad5Fecha" label="Fecha"  @input="onDateInput5" placeholder="DD/MM/AAAA" hide-details required></v-text-field>
+                                <v-text-field v-model="form.actividad5Fecha" label="Fecha"  @input="onDateInput5" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12" >                                
                                 <v-dialog v-model="dialog" persistent width="auto" >
-                                    <template v-slot:activator="{ props }">                                    
-                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props">Registrar</v-btn>
+                                    <template v-slot:activator="{ props }">                                
+                                        <v-btn size="large" rounded="pill" color="primary" class="rounded-pill" block type="button" flat v-bind="props" :disabled="isFormDisabled">Registrar</v-btn>
                                     </template>
                                     <v-card>
                                         <v-card-title class="text-h5">
@@ -924,7 +957,7 @@ const validateForm = () => {
             </v-card>
         </v-col>
     </v-row>
-                                    
+                                
     <v-dialog v-model="dialogSave" persistent width="auto" >
         <v-card>
             <v-card-title class="text-h5">
@@ -939,3 +972,6 @@ const validateForm = () => {
         </v-card>
     </v-dialog>
 </template>
+
+
+

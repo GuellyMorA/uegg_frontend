@@ -47,39 +47,6 @@ const uploadFile = async () => {
 }
 */
 
-
-const sieRules = [
-    (value: any) => {
-        if (value) return true
-        return 'El SIE es requerido'
-    },
-    (value: any) => {
-        if (value?.length === 8) return true
-        return 'El código SIE requiere 8 dígitos.'
-    },
-];
-
-let username= localStorage.getItem('username')
-
-
-// --- Variables de Estado Nuevas ---
-const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
-console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
-
-const registroExiste = ref(readOnlyVar);
-const isLoading = ref(true);
-
-const dataUE = JSON.parse(localStorage.getItem('dataUE'));
-
-const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
-
-
-// --- Fin Variables de Estado Nuevas ---
-
-// --- Estado del Componente ---
-// Controla si los campos del formulario están deshabilitados o no
-const isFormDisabled = ref(true); 
-
 // Para los v-file-input
 const selectedFilePlan = ref(null);
 const uploadMessagePlan = ref('');
@@ -89,14 +56,16 @@ const existeCiAndCodSie= ref<any | null>(null);
 // Objeto reactivo con todos los campos del formulario y datos de prueba
 const form = ref({
     // Datos de Unidad Educativa
-    sie: '40730069',
-    unidadEducativa: 'UE San Calixto II',
-    departamentoNombre: 'LA PAZ',
-    municipioNombre: 'LA PAZ I',
-    nivel: 'PRIMARIA VOCACIONAL - SECUNDARIA COMUNITARIA PRODUCTIVA',
-    modalidad: 'FISCAL',
-    director: 'ANDREA II HUANCA RODRIGUEZ',
-
+     sie: null,
+     departamentoId: null,
+     departamentoNombre: '',
+     municipioId: null,
+     municipioNombre: '',
+     unidadEducativa: '',
+     nivel: '',
+     modalidad: '',
+     director: '',
+  
     // Construcción del PCPA
     fecha: '01/01/2025',
     registroAnterior: true,
@@ -216,7 +185,43 @@ const form = ref({
     // validado: false
 });
 
-// --- Métodos ---
+const sieRules = [
+    (value: any) => {
+        if (value) return true
+        return 'El SIE es requerido'
+    },
+    (value: any) => {
+        if (value?.length === 8) return true
+        return 'El código SIE requiere 8 dígitos.'
+    },
+];
+
+let username= localStorage.getItem('username')
+// --- Variables de Estado Nuevas ---
+const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
+console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+const registroExiste = ref(readOnlyVar);
+const isLoading = ref(true);
+const storedData = localStorage.getItem('dataUE');
+const dataUE = storedData ? JSON.parse(storedData) : null;
+const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+
+// Controla si los campos del formulario están deshabilitados o no
+const isFormDisabled = ref(true); 
+const isFormDisabledFromNew = ref(true); 
+
+// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
+const iniciarNuevoRegistro = () => {
+   console.log('Ingresar nuevo registro clickeado.');
+   isFormDisabled.value = false;
+   isFormDisabledFromNew.value = false;
+};
+
+// Habilita el formulario para editar un registro existente y deshabilita el botón
+const modificarRegistro = () => {
+    console.log('modificar registro .');
+    isFormDisabled.value = false;
+};
 
 
 // registrar el formulario para editar o crear un nuevo registro
@@ -232,6 +237,7 @@ const registro = () => {
     }
 
 };
+
 // --- Función  para obtener
 const findConstByCiAndUe = async () => {  
     form.value.idUE= idUE;
@@ -243,12 +249,11 @@ const findConstByCiAndUe = async () => {
             if (existeCiAndCodSie.value.length === 1) {
 
               localStorage.setItem('idConst',res.data[0].id);
- return res.data[0].id;  
+                return res.data[0].id;  
             }else{
               localStorage.setItem('idConst','0');
-  return 0;
-            }
-               
+                  return 0;
+            }           
             
            
         } else {
@@ -272,11 +277,10 @@ const findConstByCiAndUe = async () => {
  // Lógica para modificar un formulario
 const update = async () => {
 
-    console.log('Editando datos:', form.value);
+    console.log('Editando datos ok:', form.value);
     dialog.value = false;
     dialogSave.value = true;
     isFormDisabled.value = true; // Deshabilita el formulario después de guardar
-
     registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
 
 
@@ -359,10 +363,11 @@ const update = async () => {
        usu_cre: username,
         fec_cre: new Date()
     }
-          
-    console.log('payload1: ',payload1);
+
+  // console.log("ini  save1, payload1" ,payload1);     
+   
 //  ueggPcpaUnidadEducativa
-    const save1 = await ConvivenciaPacifica.updateUnidadEducativa(idUE,payload1).then((res) => {
+ /*   const save1 = await ConvivenciaPacifica.updateUnidadEducativa(idUE,payload1).then((res) => {
         if(res.status === 200){
             toast.info('Registro modificado correctamente', {
                 autoClose: 3000,
@@ -379,11 +384,12 @@ const update = async () => {
             return res;
         }
     });
-        console.log("save1: ", save1);
-   
+        console.log("fin save1: ", save1);
+   */
     const dateParts = (form.value.fecha || '').split("/");
     const dateParts2 = (form.value.fechaAprobacion || '').split("/"); 
     
+   
     const payload2 = {
         id_pcpa_unidad_educativa: idUE,
         fecha_registro:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), //new Date( form.value.fecha).toISOString(),
@@ -395,9 +401,10 @@ const update = async () => {
         usu_cre: username,
         fec_cre: new Date()
     }
- console.log("payload2: ", payload2);
+
+       console.log("ini save2, payload2" ,payload2); 
        //  ueggPcpaConstruccion
-  /*  const save2 = await ConvivenciaPacifica.updateContruccion(payload2).then((res) => {
+   const save2 = await ConvivenciaPacifica.updateContruccion( localStorage.getItem('idConst'),payload2).then((res) => {
         if(res.status === 201){
             toast.info('Registro guardado correctamente', {
                 autoClose: 3000,
@@ -414,10 +421,10 @@ const update = async () => {
             return res;
         }
     });
-    console.log("save2: ", save2);
-   // console.log( comisionConstruccion.value);
-*/
-    console.log("ini bucle ");
+  
+ console.log("fin save2");
+
+  //     console.log("ini bucle save3, payload1" ,payload3); 
 
     let payload3 ;
     let save3;
@@ -439,7 +446,7 @@ const update = async () => {
                 usu_cre: username,
                 fec_cre: new Date()
             }
-           console.log("payload3: ", payload3);
+           console.log("ini bucle payload3: ", payload3);
            // ueggPcpaMiembroComision
            save3 = ConvivenciaPacifica.updateMiembroComision(idUE,payload3).then((res) => {
                 if(res.status === 201){
@@ -458,7 +465,7 @@ const update = async () => {
                     return res;
                 }
             });
-           console.log("save3: ", save3);
+           console.log("bucle save3: ", save3);
 */
       // cambiar a estado INACTIVO registros previos
           /*  const delete1 =  ConvivenciaPacifica.deleteConstruccion(form.value.comisionSocializacionIdConstruccion).then((res) => {
@@ -505,10 +512,10 @@ const update = async () => {
         }        
     });
 
-    console.log("fin bucle ");
+  //  console.log("fin bucle payload3");
 
 
-    console.log("ini bucle ");
+
     let payload4;
     let save4;
     await Object.keys(tema.value).map((item, key) => {
@@ -525,7 +532,7 @@ const update = async () => {
                 usu_cre: username,
                 fec_cre: new Date()
             }
-           console.log("payload4: ", payload4);  
+            console.log("ini bucle save4, payload4" ,payload4); 
             //  ueggPcpaActividadesPromocion
             save4 = ConvivenciaPacifica.updateTarea(item,payload4).then((res) => {
                 if(res.status === 200){
@@ -544,7 +551,7 @@ const update = async () => {
                     return res;
                 }
             });
-            console.log("save4: ", save4);
+            console.log(" bucle save4: ", save4);
 
           /*  let delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( tema.value[item].id  === undefined ? 0 : tema.value[item].id ).then((res) => {
                 if(res.status === 204){
@@ -567,11 +574,11 @@ const update = async () => {
             
         }        
     });
-    console.log("fin bucle ");
+    console.log("fin bucle save 4");
 
 
     if(form.value.temaDisciplinario){
-        console.log("ini bucle 50");
+        console.log("ini bucle payload50");
         let payload50;
         let save50;
         await Object.keys(temaDisciplinario.value).map((item, key) => {
@@ -588,7 +595,7 @@ const update = async () => {
                     usu_cre: username,
                     fec_cre: new Date()
                 }
-                 console.log("payload50: ", payload50);
+                   console.log(" bucle save50, payload1" ,payload50); 
                        // ueggPcpaActividadesPromocion
                 save50 = ConvivenciaPacifica.updateTareaPromover(item,payload50).then((res) => {
                     if(res.status === 201){
@@ -607,7 +614,7 @@ const update = async () => {
                         return res;
                     }
                 });
-                console.log("save50: ", save50);
+                console.log("bucle save50: ", save50);
 
               /*  const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaDisciplinario.value[item].id  === undefined ? 0 : temaDisciplinario.value[item].id).then((res) => {
                 if(res.status === 204){
@@ -630,12 +637,12 @@ const update = async () => {
 
             }        
         });
-        console.log("fin bucle ");
+        console.log("fin bucle save50");
       
     }
 
     if(form.value.temaPromover){
-        console.log("ini bucle ");
+        console.log("ini bucle save5");
         let payload5;
         let save5;
         await Object.keys(temaPromover.value).map((item, key) => {
@@ -652,7 +659,7 @@ const update = async () => {
                     usu_cre:username,
                     fec_cre: new Date()
                 }
-                 console.log("payload5: ", payload5);
+                   console.log("ini save5, payload5" ,payload5); 
                         // ueggPcpaActividadesPromocion
                 save5 = ConvivenciaPacifica.updateTareaPromover(item,payload5).then((res) => {
                     if(res.status === 201){
@@ -671,7 +678,7 @@ const update = async () => {
                         return res;
                     }
                 });
-                   console.log("save5: ", save5);
+                   console.log("bucle save5: ", save5);
              /*   const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaPromover.value[item].id === undefined ? 0 :  temaPromover.value[item].id ).then((res) => {
                 if(res.status === 204){
                     toast.info('Registro eliminado correctamente', {
@@ -693,11 +700,11 @@ const update = async () => {
 
             }        
         });
-        console.log("fin bucle ");
-        console.log("save5", save5);
+        console.log("fin bucle save5", save5  );
+       
     }
 
-    console.log("ini bucle ");
+    console.log("ini bucle save6");
     let payload6;
     let save6;
     await Object.keys(comisionAprobacion.value).map((item, key) => {
@@ -716,7 +723,7 @@ const update = async () => {
                 usu_cre: username,
                 fec_cre: new Date()
             }
-             console.log("payload6: ", payload6);
+             console.log("bucle payload6: ", payload6);
                   //  ueggPcpaMiembroComision comisionAprobacion
             save6 = ConvivenciaPacifica.updateMiembroComisionAprobacion(item,payload6).then((res) => {
                 if(res.status === 201){
@@ -735,7 +742,7 @@ const update = async () => {
                     return res;
                 }
             });
-            console.log("save6: ", save6);
+            console.log(" bucle save6: ", save6);
             console.log('comisionAprobacion.value[item].id: ',  comisionAprobacion.value[item].id);
       
            /* if(!(comisionAprobacion.value[item].id  === undefined ) ){ 
@@ -761,10 +768,9 @@ const update = async () => {
 
         }        
     });
-    console.log("fin bucle ");
-    console.log("save6", save6);
+    console.log("fin bucle ", save6);
 
-    console.log("fin");
+    console.log("fin de todos los save");
       
 };
 
@@ -1263,19 +1269,6 @@ const save = async () => {
 };
 
 
-// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
-const iniciarNuevoRegistro = () => {
-    console.log('Ingresar nuevo registro clickeado.');
-   isFormDisabled.value = false;
-};
-
-
-// Habilita el formulario para editar un registro existente y deshabilita el botón
-const modificarRegistro = () => {
-    console.log('modificar registro .');
-    isFormDisabled.value = false;
-};
-
 
 // Lógica para subir archivos (simulada)
 const uploadFilePlan = () => {
@@ -1352,7 +1345,7 @@ const findInstitucionEducativa = async () => {
       const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
                     // O también: ue => ue.codigo_sie.toString() === codigo_sie
                     );
-        console.log("Institución encontrada: ", data);
+        console.log("listUnidadesEducativasPorDirector  encontrada: ", data);
         if(data){
        form.value.departamentoId = data.departamento_codigo;
         form.value.departamentoNombre = data.departamento;
@@ -1490,7 +1483,7 @@ const findActividadesPromocion = async () => {
     console.log(form.value.sie);
 
     const res = await ConvivenciaPacifica.findActividadesPromocion(form.value.sie);
-    console.log("res", res);
+    console.log("findActividadesPromocion res: ", res);
     res.data.map((data: {  nivel: number; id_pcpa_actividades_tipo: number; 
                         }, index:  number) => {
               console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
@@ -1742,25 +1735,25 @@ const validateForm = () => {
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.sie" :counter="8" label="SIE" required hide-details @keyup="findInstitucionEducativa" :readonly="find && !variusSie"></v-text-field>
+                                    <v-text-field v-model="form.sie" :counter="8" label="SIE" required hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="8">
-                                    <v-text-field v-model="form.unidadEducativa" label="Unidad Educativa" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.unidadEducativa" label="Unidad Educativa" hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.departamentoNombre" label="Departamento" hide-details   :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.municipioNombre" label="Distrito" hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.nivel" label="Nivel" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.nivel" label="Nivel" hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.modalidad" label="Modalidad" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.modalidad" label="Modalidad" hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="8">
-                                    <v-text-field v-model="form.director" label="Director" hide-details required :readonly="find"></v-text-field>
+                                    <v-text-field v-model="form.director" label="Director" hide-details  :readonly="true"></v-text-field>
                                 </v-col>
 
                                 <!-- Construcción del PCPA -->
@@ -1770,7 +1763,7 @@ const validateForm = () => {
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                    <v-text-field v-model="form.fecha" label="Fecha de registro" @input="onDateInput" placeholder="DD/MM/AAAA" :disabled="isFormDisabled" hide-details required></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="8">
                                     <v-checkbox v-model="form.registroAnterior" label="¿Se realizó un diagnóstico antes de iniciar la construcción del PCPA?" :disabled="isFormDisabled" required></v-checkbox>
@@ -1779,38 +1772,38 @@ const validateForm = () => {
                                 <!-- Miembros de la comisión de construcción -->
                                 <v-col cols="12">
                                     <div class="text-h6 w-100 font-weight-regular auth-divider position-relative">
-                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión de construcción del PCPA</span>
+                                        <span class="bg-surface position-relative text-subtitle-1 text-grey100">Miembros de la comisión de construcción del PCPA.</span>
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionSocializacionEstudiante" label="Estudiantes" :disabled="isFormDisabledFromNew"  ></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionSocializacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionEstudiante || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionSocializacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionEstudiante || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionSocializacionDirector" label="Director(a)" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionSocializacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionDirector || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionSocializacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionDirector || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionSocializacionMaestro" label="Maestro(a)" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionSocializacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionMaestro || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionSocializacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionMaestro || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionSocializacionPadre" label="Padres/Madres" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionSocializacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionPadre || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionSocializacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionPadre || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionSocializacionOtro" label="Otros" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionSocializacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionOtro || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionSocializacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionSocializacionOtro || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
 
                                 <!-- Temas que aborda el Plan -->
@@ -1860,40 +1853,40 @@ const validateForm = () => {
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionAprobacionEstudiante" label="Estudiantes" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionAprobacionEstudiante" label="Estudiantes" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionAprobacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionEstudiante || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionAprobacionEstudianteNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionEstudiante || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionAprobacionDirector" label="Director(a)" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionAprobacionDirector" label="Director(a)" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionAprobacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionDirector || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionAprobacionDirectorNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionDirector || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionAprobacionMaestro" label="Maestro(a)" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionAprobacionMaestro" label="Maestro(a)" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionAprobacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionMaestro || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionAprobacionMaestroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionMaestro || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionAprobacionPadre" label="Padres/Madres" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionAprobacionPadre" label="Padres/Madres" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionAprobacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionPadre || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionAprobacionPadreNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionPadre || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="2">
-                                    <v-checkbox v-model="form.comisionAprobacionOtro" label="Otros" :disabled="isFormDisabled"></v-checkbox>
+                                    <v-checkbox v-model="form.comisionAprobacionOtro" label="Otros" :disabled="isFormDisabledFromNew"></v-checkbox>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.comisionAprobacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionOtro || isFormDisabled"></v-text-field>
+                                    <v-text-field v-model="form.comisionAprobacionOtroNombre" label="Nombre" hide-details :disabled="!form.comisionAprobacionOtro || isFormDisabledFromNew"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                    <v-text-field v-model="form.fechaAprobacion" label="Fecha de aprobación" @input="onDateInputAprobacion" placeholder="DD/MM/AAAA" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                    <v-text-field v-model="form.fechaAprobacion" label="Fecha de aprobación" @input="onDateInputAprobacion" placeholder="DD/MM/AAAA" :disabled="isFormDisabledFromNew" hide-details required></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="6">
-                                    <v-text-field v-model="form.vigenciaAprobacion" label="Tiempo de vigencia (1 a 3 años)" type="number" :readonly="isFormDisabled" hide-details required></v-text-field>
+                                    <v-text-field v-model="form.vigenciaAprobacion" label="Tiempo de vigencia (1 a 3 años)" type="number" :disabled="isFormDisabled" hide-details required></v-text-field>
                                 </v-col>
                                 
                                 <!-- Adjuntar archivos -->
