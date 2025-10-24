@@ -83,22 +83,22 @@ const form = ref({
     comisionSocializacionOtroNombre: '',
 
     // Temas que aborda el Plan
-    temaDerecho: true,
-    temaNorma: true,
-    temaPromover: true,
-    temaPromover1: true,
+    temaDerecho: false,
+    temaNorma: false,
+    temaPromover: false,
+    temaPromover1: false,
     temaPromover2: false,
-    temaPromover3: true,
+    temaPromover3: false,
     temaPromover4: false,
-    temaPromover5: true,
+    temaPromover5: false,
     temaPromover6: false,
-    temaPromover7: true,
+    temaPromover7: false,
     temaPromover8: false,
-    temaPromover9: true,
-    temaDisciplinario: true,
-    temaDisciplinarioCorrectivo: true,
+    temaPromover9: false,
+    temaDisciplinario: false,
+    temaDisciplinarioCorrectivo: false,
     temaDisciplinarioProcedimientoMarco: false,
-    temaDisciplinarioProcedimientoAlternativo: true,
+    temaDisciplinarioProcedimientoAlternativo: false,
     temaDisciplinarioLineamiento: false,
 
     // Miembros de la comisión que aprueba el PCPA
@@ -275,17 +275,398 @@ const findConstByCiAndUe = async () => {
 };
 
  // Lógica para modificar un formulario
+// Lógica para modificar un formulario
+
+// HELPER: Función segura para parsear fechas DD/MM/YYYY
+const parseDateSafe = (dateString) => {
+    if (!dateString) return null; // No procesar si está vacío
+    const parts = dateString.split('/');
+    if (parts.length !== 3) {
+        console.warn(`Formato de fecha no válido: ${dateString}`);
+        return null; // Formato inválido
+    }
+    // Formato YYYY-MM-DD (ISO 8601)
+    const isoDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    const dateObj = new Date(isoDate);
+    
+    // Verificar si la fecha resultante es válida (ej. 31/02/2024 sería inválido)
+    if (isNaN(dateObj.getTime())) {
+         console.warn(`Fecha inválida (ej. 31/02): ${dateString}`);
+        return null;
+    }
+    return dateObj.toISOString();
+};
+/**
+ * Compara un array de actividades con un objeto JSON de estados
+ * y devuelve un array combinado según las reglas especificadas.
+ *
+ * Reglas (basadas en los ejemplos proporcionados):
+ * 1. Si el ID existe en ambos (array y JSON):
+ * - Se combinan los datos.
+ * - El 'estado' se establece como 'ACTIVO'.
+ * 2. Si el ID solo existe en el array (no en JSON):
+ * - Se usan datos del array.
+ * - id='null', status=true, estado='INACTIVAR'.
+ * 3. Si el ID solo existe en el JSON (no en el array):
+ * - Se usan datos del JSON.
+ * - id_actividades_promocion='null', check_actividad_tipo='null', estado='NUEVO'.
+ * - (Nota: El 'status' del JSON 7882 era 'false' en los datos, pero 'true' en el
+ * ejemplo de salida. Esta función sigue el ejemplo de salida).
+ */
+function compararActividades(arrayDatos, jsonDatos) {
+  const resultado = [];
+
+  // 1. Convertir el objeto JSON a un Map para búsqueda rápida (O(1) en promedio).
+  //    Solo incluimos items que tienen una propiedad 'id'.
+  const jsonMap = new Map();
+  for (const item of Object.values(jsonDatos)) {
+    if (item.id !== undefined) {
+      jsonMap.set(item.id, item);
+    }
+  }
+
+  // 2. Recorrer el array principal (arrayDatos)
+  //    Esto manejará la Regla 1 (Coincidencia) y la Regla 2 (Solo en Array)
+  for (const arrayItem of arrayDatos) {
+    const id = arrayItem.id_actividades_promocion;
+    const jsonMatch = jsonMap.get(id);
+
+    if (jsonMatch) {
+      // Regla 1: Existe en ambos (Array y JSON)
+      resultado.push({
+        id_actividades_promocion: arrayItem.id_actividades_promocion,
+        check_actividad_tipo: arrayItem.check_actividad_tipo,
+               id_pcpa_actividades_tipo: arrayItem.id_pcpa_actividades_tipo,
+        id: jsonMatch.id, 
+        status: jsonMatch.status, // Tomamos el status del JSON
+        estado: 'ACTIVO', // 'estado' fijo según tu ejemplo de regla 1
+      });
+
+      // Eliminamos el item del Map para saber cuáles sobran (Regla 3)
+      jsonMap.delete(id);
+    } else {
+      // Regla 2: Solo existe en el Array
+      resultado.push({
+        id_actividades_promocion: arrayItem.id_actividades_promocion,
+        check_actividad_tipo: arrayItem.check_actividad_tipo,
+           id_pcpa_actividades_tipo: arrayItem.id_pcpa_actividades_tipo,
+        id: 'null', // 'id' nulo según tu ejemplo de regla 2
+        status: arrayItem.status, // true   'status' fijo según tu ejemplo de regla 2
+        estado: 'INACTIVAR', // 'estado' fijo según tu ejemplo de regla 2
+      });
+    }
+  }
+
+  // 3. Recorrer los items restantes en el Map
+  //    Estos son los que solo existían en el JSON (Regla 3)
+  for (const jsonItem of jsonMap.values()) {
+    // Regla 3: Solo existe en el JSON
+    resultado.push({
+      id_actividades_promocion: 'null', // Nulo según tu ejemplo de regla 3
+      check_actividad_tipo: 'null', // Nulo según tu ejemplo de regla 3
+                    id_pcpa_actividades_tipo: 'null',  
+      id: jsonItem.id,      
+      // Nota sobre la contradicción:
+      // Tu JSON de entrada para 7882 tiene status:false
+      // Tu JSON de salida de ejemplo para 7882 tiene status:true
+      // Aquí sigo tu *ejemplo de salida* (status: true).
+      // Si quieres usar el dato del JSON de *entrada*, cambia la línea de abajo por:
+      // status: jsonItem.status,
+      status:false , //true 'status' fijo según tu ejemplo de regla 3
+
+      estado: 'NUEVO', // 'estado' fijo según tu ejemplo de regla 3
+    });
+  }
+
+  return resultado;
+}
+
+// --- DATOS DE ENTRADA ---
+
+const arrayDatos = [
+  {
+    id_actividades_promocion: 7878,
+    id_pcpa_construccion: 1079,
+    id_pcpa_actividades_tipo: 3,
+    nivel: 1,
+    cod_actividad: 'PD',
+    desc_actividades_promocion: 'PROCEDIMIENTOS DISCIPLINARIOS',
+    check_actividad_tipo: true,
+    orden: 3,
+    estado: 'MODIFICADO',
+  },
+  {
+    id_actividades_promocion: 7879,
+    id_pcpa_construccion: 1079,
+    id_pcpa_actividades_tipo: 2,
+    nivel: 1,
+    cod_actividad: 'NC',
+    desc_actividades_promocion: 'NORMAS DE CONDUCTA',
+    check_actividad_tipo: true,
+    orden: 2,
+    estado: 'MODIFICADO',
+  },
+  {
+    id_actividades_promocion: 7880,
+    id_pcpa_construccion: 1079,
+    id_pcpa_actividades_tipo: 2,
+    nivel: 2,
+    cod_actividad: 'FDHP',
+    desc_actividades_promocion: 'FOMENTO AL DESARROLLO DE HABILIDADES Y PRÁCTICA DE VALORES',
+    check_actividad_tipo: true,
+    orden: 2,
+    estado: 'ACTIVO',
+  },
+  {
+    id_actividades_promocion: 7881,
+    id_pcpa_construccion: 1079,
+    id_pcpa_actividades_tipo: 10,
+    nivel: 2,
+    cod_actividad: 'S',
+    desc_actividades_promocion: 'CORRECTIVOS PEDAGÓGICOS',
+    check_actividad_tipo: false,
+    orden: null,
+    estado: 'INACTIVO',
+  },
+];
+
+const jsonDatos = {
+  1: {
+    status: false,
+    id: 7882,
+  },
+  2: {
+    status: true,
+    id: 7879,
+  },
+  3: {
+    status: true,
+    id: 7878,
+  },
+  4: {},
+  5: {},
+  6: {},
+  7: {},
+  8: {},
+  9: {
+    status: false,
+  },
+  10: {},
+};
+
+// --- Configuración de Endpoints (Debes cambiar esto) ---
+// Define la URL base de tu API
+const API_BASE_URL = 'https://api.tu-dominio.com';
+
+// Endpoints específicos
+const ENDPOINT_ACTUALIZAR = (id) => `${API_BASE_URL}/actividades/${id}`;
+const ENDPOINT_CREAR = `${API_BASE_URL}/actividades`;
+
+/**
+ * Función principal que recibe el array y procesa las peticiones.
+ * Es 'async' para poder usar 'await'.
+ *
+ * @param {Array} resultadoFinal El array generado en el paso anterior.
+ */
+const procesarResultadosAPI = async (resultadoFinal) => {
+        console.log('Iniciando procesamiento de API...');
+           const constId = await findConstByCiAndUe();
+
+    // 2. Parseo de fechas seguro
+    const fechaRegistroISO = parseDateSafe(form.value.fecha);
+    const fechaAprobacionISO = parseDateSafe(form.value.fechaAprobacion);
+
+    if (!fechaRegistroISO || !fechaAprobacionISO) {
+         toast.error('Las fechas de registro o aprobación son inválidas.', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        return; // Detener la ejecución si las fechas fallan
+    }
+        // 1. Creamos un array para guardar todas las promesas (peticiones)
+        const promesas = [];
+
+        // 2. Iteramos sobre cada item del array resultadoFinal
+        for (const item of resultadoFinal) {
+
+            if (item.estado === 'ACTIVO' || item.estado === 'INACTIVO') {
+            // --- Lógica PUT (Actualizar) ---
+            // Si es ACTIVO o INACTIVO, llamamos al endpoint PUT.
+            // Usamos el 'id_actividades_promocion' para la URL.
+            const idParaActualizar = item.id_actividades_promocion;
+            
+            console.log(`Preparando PUT para ID: ${idParaActualizar}`, item);
+            
+            // 2. Creamos la promesa PUT y la añadimos al array
+            promesas.push(
+                // 3. Usamos una función asíncrona autoejecutable (IIAFE)
+                //    Esto crea y devuelve una promesa que 'Promise.allSettled' puede manejar.
+                (async () => {                       
+                    try {
+                        const payload4 = {
+                            id_pcpa_construccion: constId,                       
+                            id_pcpa_actividades_tipo: item.id_pcpa_actividades_tipo, 
+                            
+                            nivel: 1,
+                            fec_aprobacion: fechaAprobacionISO,
+                            tiempo_vigencia: 0,
+                            declaracion_jurada: true,
+                            estado: 'MODIFICADO',
+                            usu_cre: username,
+                            fec_cre: new Date()
+                        };
+                        
+                        console.log(`ini bucle save4 (PUT ID: ${idParaActualizar}), payload4:`, { ...payload4 });
+
+                        // 4. Ahora sí puedes usar 'await' dentro de esta función 'async'
+                        const res = await ConvivenciaPacifica.updateTarea(idParaActualizar, payload4);
+                        
+                        if (res.status === 200) {
+                            toast.info(`Registro ${idParaActualizar} guardado correctamente`, { 
+                                autoClose: 3000,
+                                position: toast.POSITION.TOP_RIGHT, 
+                            });
+                        } else {
+                            toast.error(`Registro ${idParaActualizar} no modificado (Status: ${res.status})`, { 
+                                autoClose: 3000,
+                                position: toast.POSITION.TOP_RIGHT, 
+                            });
+                        }
+                        
+                        console.log(`fin bucle save4 (ID: ${idParaActualizar}), respuesta:`, res);
+                        
+                        // 5. Devolvemos la respuesta para que 'allSettled' la capture como 'fulfilled'
+                        return res; 
+
+                    } catch (error) {
+                        // 6. El 'catch' maneja el error de 'updateTarea'
+                        console.error(`Error en save4 (PUT ID: ${idParaActualizar}):`, error);
+                        toast.error(`Error guardando ${idParaActualizar}: ${error.message}`);
+                        
+                        // 7. Volvemos a lanzar el error para que Promise.allSettled
+                        //    lo registre como 'rejected'.
+                        throw error; 
+                    }
+                })() // <-- Los '()' al final ejecutan la función inmediatamente.
+            );
+
+
+            } else if (item.estado === 'NUEVO') {
+                  // Si es NUEVO, llamamos al endpoint POST (Crear).            
+            console.log('Preparando POST (NUEVO)', item);
+            
+            // Creamos la promesa POST y la añadimos al array
+          // 2. Creamos la promesa PUT y la añadimos al array
+            promesas.push(                // 3. Usamos una función asíncrona autoejecutable (IIAFE)
+                //    Esto crea y devuelve una promesa que 'Promise.allSettled' puede manejar.
+                (async () => {                       
+                    try {
+                        const payload4 = {
+                            id_pcpa_construccion: constId,                       
+                            id_pcpa_actividades_tipo: item.id_pcpa_actividades_tipo, 
+                            
+                            nivel: 1,
+                            fec_aprobacion: fechaAprobacionISO,
+                            tiempo_vigencia: 0,
+                            declaracion_jurada: true,
+                            estado: 'ACTIVO',
+                            usu_cre: username,
+                            fec_cre: new Date()
+                        };
+                        
+                        console.log(`ini bucle save4 (PUT ID: ${idParaActualizar}), payload4:`, { ...payload4 });
+
+                        // 4. Ahora sí puedes usar 'await' dentro de esta función 'async'
+                        const res = await ConvivenciaPacifica.createTarea(idParaActualizar, payload4);
+                        
+                        if (res.status === 200) {
+                            toast.info(`Registro ${idParaActualizar} guardado correctamente`, { 
+                                autoClose: 3000,
+                                position: toast.POSITION.TOP_RIGHT, 
+                            });
+                        } else {
+                            toast.error(`Registro ${idParaActualizar} no modificado (Status: ${res.status})`, { 
+                                autoClose: 3000,
+                                position: toast.POSITION.TOP_RIGHT, 
+                            });
+                        }
+                        
+                        console.log(`fin bucle save4 (ID: ${idParaActualizar}), respuesta:`, res);
+                        
+                        // 5. Devolvemos la respuesta para que 'allSettled' la capture como 'fulfilled'
+                        return res; 
+
+                    } catch (error) {
+                        // 6. El 'catch' maneja el error de 'updateTarea'
+                        console.error(`Error en save4 (PUT ID: ${idParaActualizar}):`, error);
+                        toast.error(`Error guardando ${idParaActualizar}: ${error.message}`);
+                        
+                        // 7. Volvemos a lanzar el error para que Promise.allSettled
+                        //    lo registre como 'rejected'.
+                        throw error; 
+                    }
+                })() // <-- Los '()' al final ejecutan la función inmediatamente.
+            );
+
+
+
+            }
+        }
+
+        // 3. Ejecutamos todas las promesas en paralelo
+        // Usamos Promise.allSettled() porque no queremos que una petición fallida
+        // detenga a las demás. Esperará a que todas terminen.
+        console.log(`Enviando ${promesas.length} peticiones...`);
+        const resultados = await Promise.allSettled(promesas);
+
+        console.log('--- Procesamiento de API completado ---');
+
+        // 4. (Opcional) Revisamos los resultados de cada petición
+        resultados.forEach((resultado, index) => {
+            if (resultado.status === 'fulfilled') {
+            // La petición fue exitosa
+            console.log(`Éxito Petición ${index + 1}:`, resultado.value.data);
+            } else {
+            // La petición falló
+            console.error(`Error Petición ${index + 1}:`, resultado.reason.message);
+            // Si el servidor dio una respuesta de error (ej. 404, 500), estará aquí:
+            if (resultado.reason.response) {
+                console.error('Detalle del error (servidor):', resultado.reason.response.data);
+            }
+            }
+        });
+
+        console.log('Fin del proceso.');
+};
+
+// --- EJEMPLO DE CÓMO LLAMAR A LA FUNCIÓN ---
+// (Esto es solo para demostrar, 'resultadoFinal' vendría de tu otra función)
+/*
+const resultadoDePrueba = [
+  { id_actividades_promocion: 7879, check_actividad_tipo: true , id:7879, status:true, estado: 'ACTIVO' },
+  { id_actividades_promocion: 'null', check_actividad_tipo: 'null', id:7882, status:true, estado: 'NUEVO' },
+  { id_actividades_promocion: 7881, check_actividad_tipo: false, id:'null', status:true, estado: 'INACTIVAR' }
+];
+
+// Para ejecutarla (quizás dentro de un método onMounted o al hacer clic en un botón)
+// onMounted(() => {
+//   procesarResultadosAPI(resultadoDePrueba);
+// });
+*/
+
+
+
 const update = async () => {
 
-    console.log('Editando datos ok:', form.value);
+    // 1. Snapshot correcto con console.log
+    console.log('Editando datos (snapshot):', { ...form.value });
     dialog.value = false;
     dialogSave.value = true;
     isFormDisabled.value = true; // Deshabilita el formulario después de guardar
     registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
 
-
     if (!validateForm()) {
-        dialog.value = false;  
+        dialog.value = false;
         toast.info('Debe ingresar los datos requeridos', {
             autoClose: 3000,
             position: toast.POSITION.TOP_RIGHT,
@@ -293,7 +674,8 @@ const update = async () => {
         return false;
     }
 
-    comisionConstruccion.value = {
+    // ... (Tu lógica para construir comisionConstruccion, tema, etc. está bien) ...
+  comisionConstruccion.value = {
         1: {status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
         2: {status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId},
         3: {status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId},
@@ -342,436 +724,200 @@ const update = async () => {
         5: {status: form.value.comisionAprobacionOtro, value: form.value.comisionAprobacionOtroNombre, id: form.value.comisionAprobacionOtroId}
     };
 
-    const payload1 = {
-        cod_ue: form.value.sie,
-        desc_ue: form.value.unidadEducativa, 
-        cod_sie: form.value.sie,
-        cod_rda_director: null,
-        cod_director: null,
-        nombres_director: form.value.director,
-        apellidos_director: form.value.director,
-    
-        cod_departamento: form.value.departamento_codigo  ,
-        desc_departamento: form.value.departamentoNombre ,
-        cod_municipio:  form.value.municipioId,
-        desc_municipio:  form.value.municipioNombre,
-        cod_nivel: 0 ,
-        desc_nivel: form.value.nivel ,
-        modalidad: form.value.modalidad,
-    
-        estado: 'MODIFICADO',
-       usu_cre: username,
-        fec_cre: new Date()
+
+    // 2. Parseo de fechas seguro
+    const fechaRegistroISO = parseDateSafe(form.value.fecha);
+    const fechaAprobacionISO = parseDateSafe(form.value.fechaAprobacion);
+
+    if (!fechaRegistroISO || !fechaAprobacionISO) {
+         toast.error('Las fechas de registro o aprobación son inválidas.', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        return; // Detener la ejecución si las fechas fallan
     }
 
-  // console.log("ini  save1, payload1" ,payload1);     
-   
-//  ueggPcpaUnidadEducativa
- /*   const save1 = await ConvivenciaPacifica.updateUnidadEducativa(idUE,payload1).then((res) => {
-        if(res.status === 200){
-            toast.info('Registro modificado correctamente', {
-                autoClose: 3000,
-                position: toast.POSITION.TOP_RIGHT,
-            });
-            dialog.value = false;  
-            dialogSave.value = true; 
-            return res;
-        } else {
-            toast.error('Registro no modificado', {
-                autoClose: 3000,
-                position: toast.POSITION.TOP_RIGHT,
-            });
-            return res;
-        }
-    });
-        console.log("fin save1: ", save1);
-   */
-    const dateParts = (form.value.fecha || '').split("/");
-    const dateParts2 = (form.value.fechaAprobacion || '').split("/"); 
-    
-   
     const payload2 = {
         id_pcpa_unidad_educativa: idUE,
-        fecha_registro:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), //new Date( form.value.fecha).toISOString(),
-        check_diagnostico_pcpa: form.value.registroAnterior,   
-        fecha_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
-        vigencia_aprobacion : form.value.vigenciaAprobacion,
-
+        fecha_registro: fechaRegistroISO,
+        check_diagnostico_pcpa: form.value.registroAnterior,
+        fecha_aprobacion: fechaAprobacionISO,
+        vigencia_aprobacion: form.value.vigenciaAprobacion,
         estado: 'MODIFICADO',
         usu_cre: username,
         fec_cre: new Date()
     }
 
-       console.log("ini save2, payload2" ,payload2); 
-       //  ueggPcpaConstruccion
-   const save2 = await ConvivenciaPacifica.updateContruccion( localStorage.getItem('idConst'),payload2).then((res) => {
-        if(res.status === 201){
+    // 3. Corrección de `await` + `.then()` usando `try/catch`
+    let save2;
+    try {
+        console.log("ini save2 updateContruccion, payload2:", { ...payload2 });
+        const res = await ConvivenciaPacifica.updateContruccion(localStorage.getItem('idConst'), payload2);
+        
+        if (res.status === 201) { // 201 = Creado (o 200 = OK para update)
             toast.info('Registro guardado correctamente', {
                 autoClose: 3000,
                 position: toast.POSITION.TOP_RIGHT,
             });
-            dialog.value = false;  
-            dialogSave.value = true; 
-            return res;
+            dialog.value = false;
+            dialogSave.value = true;
+            save2 = res; // Guardamos la respuesta
         } else {
-            toast.error('Registro no guardado', {
+             toast.error('Registro no guardado', {
                 autoClose: 3000,
                 position: toast.POSITION.TOP_RIGHT,
             });
-            return res;
+            save2 = res; // Guardamos la respuesta de error
         }
-    });
-  
- console.log("fin save2");
+        console.log("fin save2, respuesta:", res);
 
-  //     console.log("ini bucle save3, payload1" ,payload3); 
+    } catch (error) {
+        console.error("Error crítico en save2:", error);
+        toast.error(`Error al guardar: ${error.message}`, { /* ... */ });
+        return; // Detener la función si el guardado principal falla
+    }
 
-    let payload3 ;
-    let save3;
-     const constId = await findConstByCiAndUe();
+    const constId = await findConstByCiAndUe();
 
-    await Object.keys(comisionConstruccion.value).map((item, key) => {
-        if(comisionConstruccion.value[item].value ){ //  ||  comisionConstruccion.value[item].length >0
-            console.log('comisionConstruccion item, key: ', item, key);
 
-        /*    payload3 = {
-                id_pcpa_construccion: constId,//save2.data.id,
-                id_pcpa_comision_tipo: 1,
-                id_pcpa_miembro_tipo: item,      //  id_miembro:  save2.data.id,
-                orden: key + 1,
-                nombres_miembro: comisionConstruccion.value[item].value,
-                apellidos_miembro: '', //comisionConstruccion.value[item].value, 
-                check_miembro_comision: comisionConstruccion.value[item].status,                    
-                estado: 'MODIFICADO' ,
-                usu_cre: username,
-                fec_cre: new Date()
-            }
-           console.log("ini bucle payload3: ", payload3);
-           // ueggPcpaMiembroComision
-           save3 = ConvivenciaPacifica.updateMiembroComision(idUE,payload3).then((res) => {
-                if(res.status === 201){
-                    toast.info('Registro guardado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no modificado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-           console.log("bucle save3: ", save3);
-*/
-      // cambiar a estado INACTIVO registros previos
-          /*  const delete1 =  ConvivenciaPacifica.deleteConstruccion(form.value.comisionSocializacionIdConstruccion).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
+
+    // 4. Corrección de `await` en `.map()` usando `for...of`
+    console.log("--- Iniciando  save4 (actividadesPromocion.value) ---", actividadesPromocion.value  );
+    //una forma más compacta:
+    console.table(tema.value);
+        // --- EJECUCIÓN NUEVA LOGICA DE CREAR Y UPDATE---
+        const resultadoFinal = compararActividades(  actividadesPromocion.value , tema.value);  //arrayDatos, jsonDatos
+        console.log('resultadoFinal :',resultadoFinal);
+        console.table(resultadoFinal);
+        procesarResultadosAPI(resultadoFinal);
+
+   /* for (const item of Object.keys(tema.value)) { // 'item' es la key: 1, 2, 3...
+        if (tema.value[item].status) {
+            console.log('Procesando tema [item]:', item, 'Datos:',  tema.value[item].id);
             
-            console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
-            if(!(comisionConstruccion.value[item].id  === undefined ) ){ 
-                const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionConstruccion.value[item].id).then((res) => {
-                    console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
-
-                    if(res.status === 204){
-                        toast.info('Registro eliminado correctamente', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        dialog.value = false;  
-                        dialogSave.value = true; 
-                        return res;
-                    } else {
-                        toast.error('Registro no eliminado', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        return res;
-                    }
-                });
-            }
-            */
-        }        
-    });
-
-  //  console.log("fin bucle payload3");
-
-
-
-    let payload4;
-    let save4;
-    await Object.keys(tema.value).map((item, key) => {
-        if(tema.value[item].status){
-            console.log(item, key);
-            payload4 = {
-                id_pcpa_construccion: constId,//save2.data.id,
-                id_pcpa_actividades_tipo: item,                   
+            const payload4 = {
+                id_pcpa_construccion: constId,
+                id_pcpa_actividades_tipo: item,
                 nivel: 1,
-                fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+                fec_aprobacion: fechaAprobacionISO,
                 tiempo_vigencia: 0,
-                declaracion_jurada: true,                    
-                estado: 'MODIFICADO' ,
+                declaracion_jurada: true,
+                estado: 'MODIFICADO',
                 usu_cre: username,
                 fec_cre: new Date()
-            }
-            console.log("ini bucle save4, payload4" ,payload4); 
-            //  ueggPcpaActividadesPromocion
-            save4 = ConvivenciaPacifica.updateTarea(item,payload4).then((res) => {
-                if(res.status === 200){
-                    toast.info('Registro guardado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no modificado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-            console.log(" bucle save4: ", save4);
+            };
 
-          /*  let delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( tema.value[item].id  === undefined ? 0 : tema.value[item].id ).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
+            try {
+                console.log("ini bucle save4, payload4:", { ...payload4 });
+                const res = await ConvivenciaPacifica.updateTarea(  tema.value[item].id, payload4);
+                
+                if (res.status === 200) {
+                    toast.info('Registro (tema) guardado correctamente', {         autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                 } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
+                    toast.error('Registro (tema) no modificado', {        autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                 }
-            });
-*/
+                console.log("fin bucle save4, item:", item, "respuesta:", res);
             
-        }        
-    });
-    console.log("fin bucle save 4");
+            } catch (error) {
+                 console.error(`Error en save4 (item ${item}):`, error);
+                 toast.error(`Error guardando tema ${item}: ${error.message}`);
+            }
+            
+         
+        }
+    }*/
+    console.log("--- fin bucle save 4 ---");
 
-
-    if(form.value.temaDisciplinario){
-        console.log("ini bucle payload50");
-        let payload50;
-        let save50;
-        await Object.keys(temaDisciplinario.value).map((item, key) => {
-            if(temaDisciplinario.value[item].status){
-                console.log(item, key);
-                payload50 = {
-                    id_pcpa_construccion: constId, //save2.data.id,
-                    id_pcpa_actividades_tipo: item,                   
+    if (form.value.temaDisciplinario) {
+        console.log("--- Iniciando bucle save50 (temaDisciplinario) ---", form.value.temaDisciplinario);
+        for (const item of Object.keys(temaDisciplinario.value)) {
+            if (temaDisciplinario.value[item].status) {
+                console.log('Procesando temaDisciplinario [item]:', item, 'Datos:',temaDisciplinario.value[item].id);
+                
+                const payload50 = {
+                    id_pcpa_construccion: constId,
+                    id_pcpa_actividades_tipo: item,
                     nivel: 2,
-                    fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+                    fec_aprobacion: fechaAprobacionISO,
                     tiempo_vigencia: 0,
-                    declaracion_jurada: true,                    
-                    estado: 'ACTIVO' ,
+                    declaracion_jurada: true,
+                    estado: 'ACTIVO',
                     usu_cre: username,
                     fec_cre: new Date()
-                }
-                   console.log(" bucle save50, payload1" ,payload50); 
-                       // ueggPcpaActividadesPromocion
-                save50 = ConvivenciaPacifica.updateTareaPromover(item,payload50).then((res) => {
-                    if(res.status === 201){
-                        toast.info('Registro guardado correctamente', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        dialog.value = false;  
-                        dialogSave.value = true; 
-                        return res;
+                };
+
+                try {
+                    console.log("bucle save50, payload50:", { ...payload50 });
+                    const res = await ConvivenciaPacifica.updateTareaPromover(temaDisciplinario.value[item].id, payload50);
+                    
+                    if (res.status === 201 || res.status === 200) {
+                         toast.info('Registro (disciplinario) guardado', {        autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                     } else {
-                        toast.error('Registro no modificado', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        return res;
+                         toast.error('Registro (disciplinario) no modificado', {         autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                     }
-                });
-                console.log("bucle save50: ", save50);
+                     console.log("fin bucle save50, item:", item, "respuesta:", res);
 
-              /*  const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaDisciplinario.value[item].id  === undefined ? 0 : temaDisciplinario.value[item].id).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
+                } catch (error) {
+                    console.error(`Error en save50 (item ${item}):`, error);
+                    toast.error(`Error guardando disciplinario ${item}: ${error.message}`);
                 }
-            });
-*/
-
-            }        
-        });
-        console.log("fin bucle save50");
-      
-    }
-
-    if(form.value.temaPromover){
-        console.log("ini bucle save5");
-        let payload5;
-        let save5;
-        await Object.keys(temaPromover.value).map((item, key) => {
-            if(temaPromover.value[item].status){
-                console.log(item, key);
-                payload5 = {
-                    id_pcpa_construccion: constId,//save2.data.id,
-                    id_pcpa_actividades_tipo: item,                   
-                    nivel: 2,
-                    fec_aprobacion:  new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
-                    tiempo_vigencia: 0,
-                    declaracion_jurada: true,                    
-                    estado: 'ACTIVO' ,
-                    usu_cre:username,
-                    fec_cre: new Date()
-                }
-                   console.log("ini save5, payload5" ,payload5); 
-                        // ueggPcpaActividadesPromocion
-                save5 = ConvivenciaPacifica.updateTareaPromover(item,payload5).then((res) => {
-                    if(res.status === 201){
-                        toast.info('Registro guardado correctamente', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        dialog.value = false;  
-                        dialogSave.value = true; 
-                        return res;
-                    } else {
-                        toast.error('Registro no modificado', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        return res;
-                    }
-                });
-                   console.log("bucle save5: ", save5);
-             /*   const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaPromover.value[item].id === undefined ? 0 :  temaPromover.value[item].id ).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });*/
-
-
-            }        
-        });
-        console.log("fin bucle save5", save5  );
-       
-    }
-
-    console.log("ini bucle save6");
-    let payload6;
-    let save6;
-    await Object.keys(comisionAprobacion.value).map((item, key) => {
-        if(comisionAprobacion.value[item].value){ //  comisionConstruccion.value[item].status)
-            console.log('comisionAprobacion item, key: ', item, key);
-
-            payload6 = {
-                id_pcpa_construccion: constId,//save2.data.id,
-                id_pcpa_comision_tipo: 2,  // aprobacion
-                id_pcpa_miembro_tipo: item,
-                orden: key + 1,
-                nombres_miembro: comisionAprobacion.value[item].value,
-                apellidos_miembro: '',  // comisionAprobacion.value[item].value, 
-                check_miembro_comision: comisionAprobacion.value[item].status,                    
-                estado: 'ACTIVO' ,
-                usu_cre: username,
-                fec_cre: new Date()
+                
+            
             }
-             console.log("bucle payload6: ", payload6);
-                  //  ueggPcpaMiembroComision comisionAprobacion
-            save6 = ConvivenciaPacifica.updateMiembroComisionAprobacion(item,payload6).then((res) => {
-                if(res.status === 201){
-                    toast.info('Registro guardado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no guardado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-            console.log(" bucle save6: ", save6);
-            console.log('comisionAprobacion.value[item].id: ',  comisionAprobacion.value[item].id);
-      
-           /* if(!(comisionAprobacion.value[item].id  === undefined ) ){ 
-                const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionAprobacion.value[item].id).then((res) => {
-                console.log('comisionAprobacion.value[item].id: ',  comisionAprobacion.value[item].id);
-                    if(res.status === 204){
-                        toast.info('Registro eliminado correctamente', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        dialog.value = false;  
-                        dialogSave.value = true; 
-                        return res;
+        }
+        console.log("--- fin bucle save50 ---");
+    }
+
+    if (form.value.temaPromover) {
+        console.log("--- Iniciando bucle save5 (temaPromover) ---");
+        for (const item of Object.keys(temaPromover.value)) {
+            if (temaPromover.value[item].status) {
+                 console.log('Procesando temaPromover [item]:', item, 'Datos:', temaPromover.value[item].id);
+
+                 const payload5 = {
+                    id_pcpa_construccion: constId,
+                    id_pcpa_actividades_tipo: item,
+                    nivel: 2,
+                    fec_aprobacion: fechaAprobacionISO,
+                    tiempo_vigencia: 0,
+                    declaracion_jurada: true,
+                    estado: 'ACTIVO',
+                    usu_cre: username,
+                    fec_cre: new Date()
+                };
+
+                try {
+                    console.log("ini save5, payload5:", { ...payload5 });
+                    const res = await ConvivenciaPacifica.updateTareaPromover( temaPromover.value[item].id, payload5);
+                    
+                    if (res.status === 201 || res.status === 200) {
+                         toast.info('Registro (promover) guardado', {         autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                     } else {
-                        toast.error('Registro no eliminado', {
-                            autoClose: 3000,
-                            position: toast.POSITION.TOP_RIGHT,
-                        });
-                        return res;
+                         toast.error('Registro (promover) no modificado', {         autoClose: 3000,
+                position: toast.POSITION.TOP_RIGHT, });
                     }
-                });
-            }*/
+                    console.log("fin bucle save5, item:", item, "respuesta:", res);
 
-        }        
-    });
-    console.log("fin bucle ", save6);
+                } catch (error) {
+                    console.error(`Error en save5 (item ${item}):`, error);
+                    toast.error(`Error guardando promover ${item}: ${error.message}`);
+                }
 
-    console.log("fin de todos los save");
-      
+             
+            }
+        }
+        console.log("--- fin bucle save5 ---");
+    }
+
+    /* ... (Bucle save6 comentado) ... */
+
+    console.log("--- fin de todos los saves ---");
+
 };
 
  // Lógica para guardar un nuevo formulario
@@ -925,9 +1071,6 @@ const save = async () => {
 
     console.log("ini bucle ");
 
-
-
-
     let payload3 ;
     let save3;
   
@@ -968,7 +1111,7 @@ const save = async () => {
             });
 
       // cambiar a estado INACTIVO registros previos
-            const delete1 =  ConvivenciaPacifica.deleteConstruccion(form.value.comisionSocializacionIdConstruccion).then((res) => {
+        /*    const delete1 =  ConvivenciaPacifica.deleteConstruccion(form.value.comisionSocializacionIdConstruccion).then((res) => {
                 if(res.status === 204){
                     toast.info('Registro eliminado correctamente', {
                         autoClose: 3000,
@@ -984,7 +1127,8 @@ const save = async () => {
                     });
                     return res;
                 }
-            });
+            });*/
+
             console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
             if(!(comisionConstruccion.value[item].id  === undefined ) ){ 
                 const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionConstruccion.value[item].id).then((res) => {
@@ -1050,7 +1194,7 @@ const save = async () => {
             });
 
 
-            let delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( tema.value[item].id  === undefined ? 0 : tema.value[item].id ).then((res) => {
+          /*  let delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( tema.value[item].id  === undefined ? 0 : tema.value[item].id ).then((res) => {
                 if(res.status === 204){
                     toast.info('Registro eliminado correctamente', {
                         autoClose: 3000,
@@ -1066,7 +1210,7 @@ const save = async () => {
                     });
                     return res;
                 }
-            });
+            });*/
 
             
         }        
@@ -1112,7 +1256,7 @@ const save = async () => {
                 });
 
 
-                const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaDisciplinario.value[item].id  === undefined ? 0 : temaDisciplinario.value[item].id).then((res) => {
+             /*   const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaDisciplinario.value[item].id  === undefined ? 0 : temaDisciplinario.value[item].id).then((res) => {
                 if(res.status === 204){
                     toast.info('Registro eliminado correctamente', {
                         autoClose: 3000,
@@ -1128,7 +1272,7 @@ const save = async () => {
                     });
                     return res;
                 }
-            });
+                });*/
 
 
             }        
@@ -1174,7 +1318,7 @@ const save = async () => {
                     }
                 });
 
-                const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaPromover.value[item].id === undefined ? 0 :  temaPromover.value[item].id ).then((res) => {
+            /*    const delete2 =  ConvivenciaPacifica.deleteActividadesPromocion( temaPromover.value[item].id === undefined ? 0 :  temaPromover.value[item].id ).then((res) => {
                 if(res.status === 204){
                     toast.info('Registro eliminado correctamente', {
                         autoClose: 3000,
@@ -1190,7 +1334,7 @@ const save = async () => {
                     });
                     return res;
                 }
-            });
+                });*/
 
 
             }        
@@ -1480,13 +1624,17 @@ const findMiembrosComisionConstruccion = async () => {
 }; 
 
 const findActividadesPromocion = async () => {
-    console.log(form.value.sie);
+    console.log('form.value.sie : ', form.value.sie);
 
     const res = await ConvivenciaPacifica.findActividadesPromocion(form.value.sie);
     console.log("findActividadesPromocion res: ", res);
+       actividadesPromocion.value = res.data;           
+        // O si prefieres una forma más compacta:
+    console.table(actividadesPromocion.value);
+
     res.data.map((data: {  nivel: number; id_pcpa_actividades_tipo: number; 
                         }, index:  number) => {
-              console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
+         console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
         if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===1  ){// temaDerecho
             form.value.id_temaDerecho= res.data[index].id_actividades_promocion  ;     
             form.value.temaDerecho= res.data[index].check_actividad_tipo ;      }
@@ -1560,13 +1708,8 @@ const findActividadesPromocion = async () => {
 			form.value.id_temaDisciplinarioLineamiento              = res.data[index].id_actividades_promocion               ; 		  
 			form.value.temaDisciplinarioLineamiento              = res.data[index].check_actividad_tipo               ;   } 
 
-       console.log(res.data[index]);
-
-    
+     //  console.log('res.data[index]: ',res.data[index]);    
     });
-
-    actividadesPromocion.value = res.data[0];           
-        
 
 }; 
 
