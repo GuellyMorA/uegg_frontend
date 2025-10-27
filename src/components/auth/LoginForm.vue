@@ -50,7 +50,7 @@ const findUeByCiAndCodSie = async () => {
               //  finalizeLogin('','FISCAL', form.value.username,'directorUE','CONV_PACIF:true|REPORTES:[allEdit:true]');
               localStorage.setItem('existeEnBD','true');
               localStorage.setItem('dataUE',JSON.stringify(existeCiAndCodSie.value));
-             // return true; 
+             
             }else{
               localStorage.setItem('existeEnBD','false');
              localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
@@ -118,13 +118,20 @@ const fetchUnidadesEducativasPorDirector = async () => {
                 console.log('Auth.listUnidadesEducativasPorDirector: ', res.data);     
                   unidadesEducativas.value= res.data.data || []; //  unidadesEducativasObj.data.data|| [];
                      localStorage.setItem('user', JSON.stringify(res.data));
-                // --- Lógica de verificación: Si solo hay una unidad, procede al login automático.
+                      localStorage.setItem('codigo_sie', res.data.data[0].codigo_sie);   
+               
+                      const byCiAndCodSie =  findUeByCiAndCodSie();        
+                console.log('existeEnBD', localStorage.getItem('existeEnBD')); 
+                console.log('user : ', localStorage.getItem('user'));  
+             
+                     // --- Lógica de verificación: Si solo hay una unidad, procede al login automático.
                 if (unidadesEducativas.value.length === 1) {//  unidadesEducativas.data.data.length===1){ 
                     const singleUnit = unidadesEducativas.value[0];
                     finalizeLogin(singleUnit.codigo_sie,'FISCAL',  form.value.username,'DIRECTOR','CONV_PACIF:true|ALL:[allEdit:true]');
                     return true; // Login finalizado
                 }
-                            
+
+
                 return true;   // NOTA: No redirigimos aquí, esperamos la selección en el modal.           
             } else {
 
@@ -185,14 +192,9 @@ const selectUnidadEducativa = async () => {
 const submit = async (event: any) => {
     const respuesta = fetchUnidadesEducativasPorDirector(); // await Auth.login(form.value).then( async (res) => {
         if (await respuesta) {  // res.status === 200) {
-            //console.log('Auth.login: ', res.data);    
-           // if (res.data.codigo_sie) {
+       
                 // Caso 1: El usuario tiene un SIE asignado directamente ->director
-                //localStorage.setItem('user', JSON.stringify(res.data));
-                localStorage.setItem('username', form.value.username);
-              //rbc   router.push('/');             
-               // Carga las unidades
-               //  fetchUnidadesEducativasPorDirector() ;
+                localStorage.setItem('username', form.value.username);                      
               
                showModal.value = true; // Muestra el modal                       
               

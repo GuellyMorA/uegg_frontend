@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import UiParentCard from '@/components/shared/UiParentCard.vue';
+//import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
+import Auth from '@/services/Auth'; 
+
 // import { useNavbarStore } from '@/stores/navbar';
 // const store = useNavbarStore();  
 // store.setPath('/convivencia/pacifica');
@@ -117,10 +119,12 @@ const registro = () => {
 };
 
 onMounted(async() => {
+
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
         //const resInst = await findInstitucionEducativa();
+           findUnidadesEducativasPorDirector();
         const resMiem = await findMiembroComision();
         const resAct = await findActividadesEjecutadas();
         username = localStorage.getItem('username') ;
@@ -130,6 +134,7 @@ onMounted(async() => {
 
 }); 
 
+/*
 const findInstitucionEducativa = async () => {
     console.log(form.value.sie);
     if(String(form.value.sie).length === 8){
@@ -145,8 +150,47 @@ const findInstitucionEducativa = async () => {
         find.value = false;
         form.value.unidadEducativa = '';
     }
-}; 
+}; */
+const findUnidadesEducativasPorDirector = async () => {
+    console.log("form.value.sie:" , form.value.sie);
+    const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
 
+    if(String(form.value.sie).length === 8){
+        const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
+         //  console.log("Respuesta del servidor:", res);  //              console.log("Tipo de res.data:", typeof res.data.data);
+        //    console.log("¿Es array res.data?:", Array.isArray(res.data.data));
+      const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
+                    // O también: ue => ue.codigo_sie.toString() === codigo_sie
+                    );
+        console.log("listUnidadesEducativasPorDirector  encontrada: ", data);
+      if(data){
+        form.value.departamentoId = data.departamento_codigo;
+        form.value.departamentoNombre = data.departamento;
+       // form.value.municipioId = data.municipio_codigo;
+        form.value.municipioNombre = data.distrito ;   // municipio;
+        form.value.unidadEducativa = data.nombre_unidad_educativa ;  // institucioneducativa;
+        form.value.nivel = data.nivel;
+        form.value.modalidad = data.dependencia;
+        form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
+        find.value = true;
+        institucionEducativa.value = data;
+        console.log("form.value.sie.length: ", form.value.sie.length);
+           
+        }
+    } else {
+        institucionEducativa.value = null;
+        find.value = false;
+        form.value.departamentoId = null;
+        form.value.departamentoNombre = '';
+        form.value.municipioId = null;
+        form.value.municipioNombre = '';
+        form.value.unidadEducativa = '';
+        form.value.nivel = '';
+        form.value.modalidad = '';
+        form.value.director = '';
+        console.warn("No se encontró ninguna institución educativa para el SIE:", sie); 
+    }
+}; 
 const findMiembroComision = async () => {
     console.log(form.value.sie);
     if(String(form.value.sie).length === 8){
@@ -474,13 +518,13 @@ const save = async () => {
     
     console.log("save6", save6);               
       
-     
+     const constId = await findConstByCiAndUe();
     if( typeof(form.value.actividad1) === 'object' ? form.value.actividad1 && form.value.actividad1.name.length : !(form.value.actividad1=== 'undefined')  ){
         var dateParts = (form.value.actividad1Fecha).split("/");
            
         const payload = {
             id_pcpa_actividades_tipo:  11,// form.value.actividad1Id,
-            id_pcpa_construccion: miembrosComision.value[0].id,
+            id_pcpa_construccion: constId, // miembrosComision.value[0].id,
             //cod_actividad: form.value.actividad1.id,  
             desc_actividad: typeof(form.value.actividad1) === 'object' ? form.value.actividad1.name : form.value.actividad1, 
             fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),      
@@ -730,6 +774,45 @@ const validateForm = () => {
    
     return !Object.keys(validationErrors.value).length;
 };
+
+// --- Función  para obtener id construcion
+const findConstByCiAndUe = async () => {  
+    form.value.idUE= idUE;
+     form.value.username= username;
+     const tecnico = await ConvivenciaPacifica.findConstByCiAndUe(form.value).then((res) => {
+        if (res.status === 200) {
+           // console.log('     res : ', res.data);    
+            existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
+            if (existeCiAndCodSie.value.length === 1) {
+
+              localStorage.setItem('idConst',res.data[0].id);
+                return res.data[0].id;  
+            }else{
+              localStorage.setItem('idConst','0');
+                  return 0;
+            }           
+            
+           
+        } else {
+            toast.error('No se encontro una UE para el Director', {
+                autoClose: 3500,
+                position: toast.POSITION.TOP_RIGHT
+            });
+           
+            return 0;
+        }
+    }).catch(() => {
+        toast.error('Error de conexión con el servidor.', {
+            autoClose: 3500,
+            position: toast.POSITION.TOP_RIGHT
+        });
+    });    
+    
+    return tecnico; 
+};
+
+
+
 
 </script>
 

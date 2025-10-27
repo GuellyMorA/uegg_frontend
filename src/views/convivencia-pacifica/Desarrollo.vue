@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import UiParentCard from '@/components/shared/UiParentCard.vue';
+//import UiParentCard from '@/components/shared/UiParentCard.vue';
 import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
@@ -54,10 +54,26 @@ const uploadMessagePlan = ref('');
 const selectedFileDiagnostico = ref(null);
 const uploadMessageDiagnostico = ref('');
 const existeCiAndCodSie= ref<any | null>(null); 
+
+/*   VARIABLES 
+ 
+
+const sieRules = [
+    (value: any) => {
+        if (value) return true
+        return 'El SIE es requerido'
+    },
+    (value: any) => {
+        if (value?.length === 8) return true
+        return 'El código SIE requiere 8 dígitos.'
+    },
+];*/
+
+
+
 // Objeto reactivo con todos los campos del formulario y datos de prueba
-const form = ref({
-    // Datos de Unidad Educativa
-     sie: null,
+const form = ref({    // Datos de Unidad Educativa
+      sie: null,
      departamentoId: null,
      departamentoNombre: '',
      municipioId: null,
@@ -68,7 +84,7 @@ const form = ref({
      director: '',
   
     // Construcción del PCPA
-    fecha: '01/01/2025',
+    fecha: '01/07/2025',
     registroAnterior: true,
 
     // Miembros de la comisión de construcción del PCPA
@@ -86,8 +102,8 @@ const form = ref({
     // Temas que aborda el Plan
     temaDerecho: false,
     temaNorma: false,
-    temaPromover: false,
-    temaPromover1: false,
+    temaPromover: true,
+    temaPromover1: true,
     temaPromover2: false,
     temaPromover3: false,
     temaPromover4: false,
@@ -96,8 +112,8 @@ const form = ref({
     temaPromover7: false,
     temaPromover8: false,
     temaPromover9: false,
-    temaDisciplinario: false,
-    temaDisciplinarioCorrectivo: false,
+    temaDisciplinario: true,
+    temaDisciplinarioCorrectivo: true,
     temaDisciplinarioProcedimientoMarco: false,
     temaDisciplinarioProcedimientoAlternativo: false,
     temaDisciplinarioLineamiento: false,
@@ -113,90 +129,13 @@ const form = ref({
     comisionAprobacionPadreNombre: 'Presidente de Junta Escolar',
     comisionAprobacionOtro: false,
     comisionAprobacionOtroNombre: '',
-    fechaAprobacion: '15/02/2025',
-    vigenciaAprobacion: 2,
-    // Declaración jurada
-    validado: false
-
+    fechaAprobacion: '01/09/2036',
+    vigenciaAprobacion: 222,
+  
+    validado: false  // Declaración jurada
+    
 
 });
-/*
-// VARIABLES old
-    // sie: null,
-    // departamentoId: null,
-    // departamentoNombre: '',
-    // municipioId: null,
-    // municipioNombre: '',
-    // unidadEducativa: '',
-    // nivel: '',
-    // modalidad: '',
-    // director: '',
-    // fecha: '',
-    // registroAnterior: false,
-    // comisionCargo: '',
-    // comisionNombre: '',
-    // comisionSocializacionEstudiante: false,
-    // comisionSocializacionDirector: false,
-    // comisionSocializacionMaestro: false,
-    // comisionSocializacionPadre: false,
-    // comisionSocializacionOtro: false,
-    // comisionSocializacionEstudianteNombre: '',
-    // comisionSocializacionDirectorNombre: '',
-    // comisionSocializacionMaestroNombre: '',
-    // comisionSocializacionPadreNombre: '',
-    // comisionSocializacionOtroNombre: '',
-    // comisionSocializacionIdConstruccion: '',
-    // comisionSocializacionIdMiembro: '',
-    // temaDerecho: '',
-    // temaNorma: '',
-    // temaDisciplinario: '',
-    // temaDisciplinarioCorrectivo: '',
-    // temaDisciplinarioProcedimientoMarco: '',
-    // temaDisciplinarioProcedimientoAlternativo: '',
-    // temaDisciplinarioLineamiento: '',
-    // temaSancion: '',
-    // temaAdopcion: '',
-    // temaAlternativo: '',
-    // temaRemision: '',
-    // temaTaller: '',
-    // temaPromover: '',
-    // temaPromover1: '',
-    // temaPromover2: '',
-    // temaPromover3: '',
-    // temaPromover4: '',
-    // temaPromover5: '',
-    // temaPromover6: '',
-    // temaPromover7: '',
-    // temaPromover8: '',
-    // temaPromover9: '',
-    // temaSeguimiento: '',
-    // comisionAprobacionCargo: '',
-    // comisionAprobacionNombre: '',
-    // comisionAprobacionEstudiante: false,
-    // comisionAprobacionDirector: false,
-    // comisionAprobacionMaestro: false,
-    // comisionAprobacionPadre: false,
-    // comisionAprobacionOtro: false,
-    // comisionAprobacionEstudianteNombre: '',
-    // comisionAprobacionDirectorNombre: '',
-    // comisionAprobacionMaestroNombre: '',
-    // comisionAprobacionPadreNombre: '',
-    // comisionAprobacionOtroNombre: '',
-    // comisionAprobacionIdConstruccion: '',
-    // comisionAprobacionIdMiembro: '',
-    // fechaAprobacion:'',
-    // vigenciaAprobacion: '',
-    // validado: false
-const sieRules = [
-    (value: any) => {
-        if (value) return true
-        return 'El SIE es requerido'
-    },
-    (value: any) => {
-        if (value?.length === 8) return true
-        return 'El código SIE requiere 8 dígitos.'
-    },
-];*/
 
 let username= localStorage.getItem('username')
 // --- Variables de Estado Nuevas ---
@@ -212,6 +151,26 @@ const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userDat
 const isFormDisabled = ref(true); 
 const isFormDisabledFromNew = ref(true); 
 
+// -----------------------------------------------------------
+// FUNCIÓN PARA OBTENER Y FORMATEAR LA FECHA DE HOY (DD/MM/AAAA)
+// -----------------------------------------------------------
+
+const getTodayDateFormatted = () => {
+  const today = new Date();
+  
+  // Obtenemos día, mes y año
+  const day = today.getDate();
+  const month = today.getMonth() + 1; // getMonth() es base 0 (Enero=0)
+  const year = today.getFullYear();
+  
+  // Aseguramos que tengan 2 dígitos (ej. 05 en lugar de 5)
+  const formattedDay = String(day).padStart(2, '0');
+  const formattedMonth = String(month).padStart(2, '0');
+  
+  // Construimos la cadena "DD/MM/AAAA"
+  return `${formattedDay}/${formattedMonth}/${year}`;
+};
+
 // Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
 const iniciarNuevoRegistro = () => {
    console.log('Ingresar nuevo registro clickeado.');
@@ -226,16 +185,16 @@ const modificarRegistro = () => {
 };
 
 
-// registrar el formulario para editar o crear un nuevo registro
+// registro el formulario para editar o crear un nuevo registro
 const registro = () => {
-    console.log('modificar registro .');
+   // console.log('modificar registro .');
     isFormDisabled.value = true;
-
+console.log('Fecha form.value.fecha:', form.value.fecha);
     if (registroExiste.value ){
        update();
     }
     else{
-     save();
+     createRec();
     }
 
 };
@@ -246,7 +205,7 @@ const findConstByCiAndUe = async () => {
      form.value.username= username;
      const tecnico = await ConvivenciaPacifica.findConstByCiAndUe(form.value).then((res) => {
         if (res.status === 200) {
-           // console.log('  findConstByCiAndUe   res : ', res.data);    
+           // console.log('     res : ', res.data);    
             existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
             if (existeCiAndCodSie.value.length === 1) {
 
@@ -302,7 +261,40 @@ function capitalizarPrimeraLetra(texto) {
     return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
 }
 /**
- * Compara un array de actividades con un objeto JSON de estados
+ * Busca una cadena dentro de un Map e imprime cada comparación realizada.
+ *
+ * @param {string} cadenaBuscada La clave (string) que se intenta encontrar en el mapa.
+ * @param {Map<string, any>} mapa El Map donde se realiza la búsqueda.
+ * @returns {string} Mensaje indicando el resultado final de la búsqueda.
+ */
+function buscarCadenaEnMapaConSeguimiento(cadenaBuscada, mapa) {
+    console.log(`\n🔎 Iniciando búsqueda para la cadena: "${cadenaBuscada}"`);
+    let encontrado = false;
+
+    // Iterar sobre las claves del mapa para mostrar la comparación
+    for (const clave of mapa.keys()) {
+        if (cadenaBuscada === clave) {
+            console.log(`✅ ¡ÉXITO! Coincidencia encontrada con la clave: "${clave}"`);
+            encontrado = true;
+            // Opcional: Puedes usar 'break;' aquí para detener la búsqueda inmediatamente
+            // break;
+        } else {
+            console.log(`➡️ Comparando: "${cadenaBuscada}" vs "${clave}" -> NO COINCIDE`);
+        }
+    }
+
+    // Reporte final
+    if (encontrado) {
+        return `\n🎉 Búsqueda finalizada. La cadena **"${cadenaBuscada}"** FUE encontrada.`;
+    } else {
+        return `\n❌ Búsqueda finalizada. La cadena **"${cadenaBuscada}"** NO fue encontrada en el mapa.`;
+    }
+}
+
+
+
+
+/** Compara un array de actividades con un objeto JSON de estados
  * y devuelve un array combinado según las reglas especificadas.
  *
  * Reglas (basadas en los ejemplos proporcionados):
@@ -318,7 +310,8 @@ function capitalizarPrimeraLetra(texto) {
  * - (Nota: El 'status' del JSON 7882 era 'false' en los datos, pero 'true' en el
  * ejemplo de salida. Esta función sigue el ejemplo de salida).
  */
-function compararActividades(arrayDatos, jsonDatos) {
+
+ function compararActividades(arrayDatos, jsonDatos) {
   const resultado = [];
 
 // 1. Convertir el array JSON a un Map usando el label como clave
@@ -330,12 +323,14 @@ function compararActividades(arrayDatos, jsonDatos) {
       jsonMap.set(labelNormalizado, item.status);
     }
   }
-
+// Copia plana de los datos
+const copiaNoReactiva = new Map(jsonMap);
   // 2. Recorrer el array principal (arrayDatos)
   //    Esto manejará la Regla 1 (Coincidencia) y la Regla 2 (Solo en Array)
   for (const arrayItem of arrayDatos) {
     const labelBuscado  = capitalizarPrimeraLetra(arrayItem.desc_actividades_promocion.toLowerCase()); // id_actividades_promocion
     const jsonMatch = jsonMap.get(labelBuscado );
+      
 
     if (jsonMatch) {
       // Regla 1: Existe en ambos (Array BD y JSON pantalla)
@@ -352,8 +347,9 @@ function compararActividades(arrayDatos, jsonDatos) {
       });
 
       // Eliminamos el item del Map para saber cuáles sobran (Regla 3)
-     // jsonMap.delete(labelBuscado);
+    //  copiaNoReactiva.delete(labelBuscado);
     } else {
+
       // Regla 2: Solo existe en el Array desde BD
       resultado.push({
         id_actividades_promocion: arrayItem.id_actividades_promocion,
@@ -371,10 +367,10 @@ function compararActividades(arrayDatos, jsonDatos) {
 
   // 3. Recorrer los items restantes en el  json desde la pantalla 
   //    Estos son los que solo existían en el JSON (Regla 3)
-  for (const jsonItem of jsonMap.keys()) {
+  for (const jsonItem of copiaNoReactiva.keys()) {
     // Regla 3: Solo existe en el JSON  desde la pantalla 
         const nuevoRegistro = obtenerKeyOriginal(jsonDatos, jsonItem);
-   //// if(nuevoRegistro?.status){
+   console.error( 'nuevoRegistro :', nuevoRegistro);
       resultado.push({
       id_actividades_promocion: 'null', // Nulo según tu ejemplo de regla 3
       check_actividad_tipo: 'null', // Nulo según tu ejemplo de regla 3
@@ -386,7 +382,9 @@ function compararActividades(arrayDatos, jsonDatos) {
       estado: 'NUEVO', // 'estado' fijo según tu ejemplo de regla 3
         tieneHijos : nuevoRegistro?.tieneHijos
     });
- //   }
+ 
+
+
   }
 
   return resultado;
@@ -402,25 +400,15 @@ function obtenerKeyOriginal(jsonDatos, labelBuscado) {
 }
 
 //  busca todos los elementos que check_actividad_tipo =true, entonces ,esos elementos busca en el objeto, mediante la propiedad label, pero conviertela antes a mayuscula, a los elementos encontrados cambiale la propiedad estado a MODIFICADO
-/**
- * Modifica el estado y el ID de los elementos de un array basado en una coincidencia de 'label'.
- *
- * 1. Crea un Mapa (Map) de los items con 'check_actividad_tipo === true',
- * usando 'label' (mayúsculas) como clave y 'id_actividades_promocion' como valor.
- * 2. Recorre todo el array. Si el 'label' de un item (en mayúsculas) existe en el Mapa:
- * a. Cambia su 'estado' a 'MODIFICADO'.
- * b. Sobrescribe su 'id_actividades_promocion' con el ID guardado en el Mapa.
- *
- * @param {Array<Object>} dataArray El array de objetos a procesar.
- * @returns {Array<Object>} Un nuevo array con los estados e IDs modificados.
- */
+
 function actualizarEstadoModificado(dataArray) {
 
   // 1. Crear un MAPA (clave = label.toUpperCase(), valor = objeto con los IDs)
   const labelsFuenteMap = new Map();
   
   dataArray.forEach(item => {
-    if (item.check_actividad_tipo === true && item.label) {
+  //  console.log("item.label:", item.label);
+    if (item.id_actividades_promocion != 'null' && item.label) {
       labelsFuenteMap.set(item.label.toUpperCase(), {
         id_actividades_promocion: item.id_actividades_promocion,
         id_pcpa_actividades_tipo: item.id_pcpa_actividades_tipo
@@ -429,14 +417,14 @@ function actualizarEstadoModificado(dataArray) {
   });
   
   // 2. Recorrer el array principal y modificar los que coincidan
-  const arrayModificado = dataArray.map(item => {
+ /* const arrayModificado = dataArray.map(item => {
     if (!item.label) return item; // sin label, no se toca
 
     const labelUpper = item.label.toUpperCase();
     
     if (labelsFuenteMap.has(labelUpper)) {
       const fuente = labelsFuenteMap.get(labelUpper);
-
+ console.error( 'fuente Buscado:', fuente);
       return {
         ...item,
         id_actividades_promocion: fuente.id_actividades_promocion,
@@ -448,6 +436,67 @@ function actualizarEstadoModificado(dataArray) {
     })
     // 👇 Filtra los elementos con id_pcpa_actividades_tipo = null o 'null'
     .filter(item => item.estado == 'MODIFICADO' || (item.estado == 'NUEVO' &&  item.status == true) );//   item.status !== false  && item.estado !== 'NUEVO 
+*/
+console.log("--- INICIO DE PROCESO DE MAPEO Y COMPARACIÓN ---");
+    
+    // 1. FASE DE MAPEO (.map)
+    const arrayMapeado = dataArray.map((item, index) => {        
+       // console.log(`\n📦 Procesando elemento #${index + 1}: Label Original: ${item.label ? item.label : 'SIN ETIQUETA'} | Estado Actual: ${item.estado}`);
+        if (!item.label) {
+            console.log(`⚠️ Condición: Sin etiqueta (label nulo). Se omite la comparación.`);
+            return item;
+        }
+
+        const labelUpperDataArray = item.label.toUpperCase();
+
+        // Comprobación de coincidencia
+        if (labelsFuenteMap.has(labelUpperDataArray)) {
+            const fuente = labelsFuenteMap.get(labelUpperDataArray);
+          //  console.log(`✅ DataArray ENCONTRADA: "${labelUpperDataArray}" existe. El elemento será MODIFICADO.`);
+          //  console.error('   fuente Buscado:', fuente);
+            return {
+                ...item,
+                id_actividades_promocion: fuente.id_actividades_promocion,
+                id_pcpa_actividades_tipo: fuente.id_pcpa_actividades_tipo,
+                estado: "MODIFICADO" // Se establece el estado de modificación
+            };
+        }
+        
+        //console.error(`❌ labelsFuenteMap : "${labelsFuenteMap.get(labelUpperDataArray)}" buscada. El elemento NO será MODIFICADO.`);
+        console.error(`❌ DataArray SIN COINCIDENCIA : "${labelUpperDataArray}" NO se encontró. Se mantiene el estado: ${item.estado}, ${item.id_pcpa_actividades_tipo} `);
+        return item;
+    });
+
+    console.log("\n--- INICIO DE FASE DE FILTRADO ---");
+    
+    // 2. FASE DE FILTRADO (.filter)
+    const arrayModificado = arrayMapeado.filter((item, index) => {
+        
+        const etiqueta = item.label || 'SIN LABEL';
+        const estado = item.estado || 'N/A';
+        const status = item.status === true; // status booleano
+
+        let seMantiene = false;
+        
+        // 🔹 Opción A: Es 'MODIFICADO'
+        if (estado === 'MODIFICADO') {
+            seMantiene = true;
+          //  console.log(`🟢 FILTRO: El item "${etiqueta}" está en estado 'MODIFICADO'. ACEPTADO.`);
+        } 
+        // 🔹 Opción B: Es 'NUEVO' Y tiene status=true
+        else if (estado === 'NUEVO' && status) {
+             seMantiene = true;
+           //  console.log(`🟢 FILTRO: El item "${etiqueta}" es 'NUEVO' y tiene status=true. ACEPTADO.`);
+        } 
+        // 🔹 Rechazo
+        else {
+          //  console.log(`🔴 FILTRO: El item "${etiqueta}" (Estado: ${estado}, Status: ${item.status}) no cumple las condiciones. RECHAZADO.`);
+        }
+        
+        return seMantiene;
+    });
+    
+    console.log("\n--- FIN DEL PROCESO ---", arrayModificado);
 
 
   return arrayModificado;
@@ -455,14 +504,20 @@ function actualizarEstadoModificado(dataArray) {
 
   
 
+    // 2. Parseo de fechas seguro
+   /* const fechaRegistroISO = parseDateSafe(form.value.fecha);
+    const fechaAprobacionISO = parseDateSafe(form.value.fechaAprobacion);
+
+    if (!fechaRegistroISO || !fechaAprobacionISO) {
+         toast.error('Las fechas de registro o aprobación son inválidas.', {
+            autoClose: 3500,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        return; // Detener la ejecución si las fechas fallan
+    }*/
+
+
 // --- DATOS DE ENTRADA ---
-
-// Define la URL base de tu API
-const API_BASE_URL = 'https://api.tu-dominio.com';
-
-// Endpoints específicos
-const ENDPOINT_ACTUALIZAR = (id) => `${API_BASE_URL}/actividades/${id}`;
-const ENDPOINT_CREAR = `${API_BASE_URL}/actividades`;
 
 /**
  * Función principal que recibe el array y procesa las peticiones.
@@ -475,29 +530,20 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
         console.log('Iniciando procesamiento de API...');
         const constId = await findConstByCiAndUe();
         // modifica el array original
-    resultadoFinal = actualizarEstadoModificado(resultadoFinal);
+     resultadoFinal = actualizarEstadoModificado(resultadoFinal);
      console.table(resultadoFinal);
-    // 2. Parseo de fechas seguro
-    const fechaRegistroISO = parseDateSafe(form.value.fecha);
-    const fechaAprobacionISO = parseDateSafe(form.value.fechaAprobacion);
 
-    if (!fechaRegistroISO || !fechaAprobacionISO) {
-         toast.error('Las fechas de registro o aprobación son inválidas.', {
-            autoClose: 3500,
-            position: toast.POSITION.TOP_RIGHT,
-        });
-        return; // Detener la ejecución si las fechas fallan
-    }
         // 1. Creamos un array para guardar todas las promesas (peticiones)
         const promesas = [];
-
+         const dateParts = (form.value.fecha || '').split("/");
+        const dateParts2 = (form.value.fechaAprobacion || '').split("/"); 
         // 2. Iteramos sobre cada item del array resultadoFinal
         for (const item of resultadoFinal) {
             const idParaActualizar = item.id_actividades_promocion;    
-            if (item.estado === 'MODIFICADO'  ) { //&& item.status === false  item.estado === 'INACTIVO'
+            if (item.estado === 'MODIFICADO' && ( item.status === true  || item.status === false ) ) { //&& item.status === false  item.estado === 'INACTIVO'
             // Si es MODIFICADO llamamos al endpoint PUT.                  
-            console.log(`Preparando PUT (update) para ID: ${idParaActualizar}`, item);
-            
+          //  console.log(`Preparando PUT (update) para ID: ${idParaActualizar}`, item);
+       
             // 2. Creamos la promesa PUT(update) y la añadimos al array
             promesas.push(// 3. Usamos una función asíncrona autoejecutable (IIAFE).  Esto crea y devuelve una promesa que 'Promise.allSettled' puede manejar.
                 (async () => {                       
@@ -506,7 +552,7 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
                             id_pcpa_construccion: constId,                       
                             id_pcpa_actividades_tipo: item.id_pcpa_actividades_tipo,                             
                             nivel: item.nivel,
-                            fec_aprobacion: fechaAprobacionISO,
+                            fec_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
                             tiempo_vigencia: 0,
                             declaracion_jurada: true,
                             estado: item.status ? 'MODIFICADO' : 'INACTIVO',
@@ -520,10 +566,10 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
                         const res = await ConvivenciaPacifica.updateTarea(idParaActualizar, payload4);
                         
                         if (res.status === 200) {
-                            toast.info(`Registro ${idParaActualizar} guardado correctamente`, { 
+                            /*toast.info(`Registro ${idParaActualizar} guardado correctamente`, { 
                                 autoClose: 3500,
                                 position: toast.POSITION.TOP_RIGHT, 
-                            });
+                            });*/
                         } else {
                             toast.error(`Registro ${idParaActualizar} no modificado (Status: ${res.status})`, { 
                                 autoClose: 3500,
@@ -553,8 +599,8 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
             const estaActivo = item.status === true;
             const esNivel2 = item.nivel === 2;
             const esNivel1SinHijos = item.nivel === 1 && item.tieneHijos === false;
-
-            if (esNuevo && estaActivo && (esNivel2 || esNivel1SinHijos)) {  // Si es NUEVO, llamamos al endpoint POST (Crear).            
+             // Si es NUEVO, llamamos al endpoint POST (Crear).     
+            if (esNuevo && estaActivo && (esNivel2 || esNivel1SinHijos)) {        
                 console.log('Preparando POST (NUEVO)', item);             
                 // Creamos la promesa POST y la añadimos al array    
                 promesas.push(   // 3. Usamos una función asíncrona autoejecutable (IIAFE). Esto crea y devuelve una promesa que 'Promise.allSettled' puede manejar.
@@ -564,7 +610,7 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
                             id_pcpa_construccion: constId,                       
                             id_pcpa_actividades_tipo: item.id_pcpa_actividades_tipo,                             
                             nivel: item.nivel,
-                            fec_aprobacion: fechaAprobacionISO,
+                            fec_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
                             tiempo_vigencia: 0,
                             declaracion_jurada: true,
                             estado: 'ACTIVO',
@@ -685,104 +731,16 @@ function mapearTemasPromover(formData) {
     return temasPromover;
 }
 
-// Función para preparar los datos para enviar a BD
-function prepararDatosParaBD(formData) {
-    const datosParaBD = {
-        // Datos principales del formulario
-        sie: formData.sie,
-        unidadEducativa: formData.unidadEducativa,
-        nivel: formData.nivel,
-        modalidad: formData.modalidad,
-        director: formData.director,
-        fecha: formData.fecha,
-        
-        // Temas principales
-        temaDerecho: formData.temaDerecho || false,
-        temaNorma: formData.temaNorma || false,
-        temaPromover: formData.temaPromover || false,
-        temaDisciplinario: formData.temaDisciplinario || false,
-        
-        // IDs de temas principales (si existen)
-        id_temaDerecho: formData.id_temaDerecho || null,
-        id_temaNorma: formData.id_temaNorma || null
-    };
-
-    // Solo agregar los subtemas de "Promover" si el tema principal está activo
-    if (formData.temaPromover) {
-        datosParaBD.temasPromoverDetalle = {};
-        
-        for (let i = 1; i <= 9; i++) {
-            const key = `temaPromover${i}`;
-            const idKey = `id_temaPromover${i}`;
-            
-            datosParaBD.temasPromoverDetalle[i] = {
-                status: formData[key] || false,
-                id: formData[idKey] || null
-            };
-        }
-    }
-
-    // Solo agregar los subtemas de "Disciplinario" si el tema principal está activo
-    if (formData.temaDisciplinario) {
-        datosParaBD.temasDisciplinarioDetalle = {
-            correctivo: {
-                status: formData.temaDisciplinarioCorrectivo || false,
-                id: formData.id_temaDisciplinarioCorrectivo || null
-            },
-            procedimientoMarco: {
-                status: formData.temaDisciplinarioProcedimientoMarco || false,
-                id: formData.id_temaDisciplinarioProcedimientoMarco || null
-            },
-            procedimientoAlternativo: {
-                status: formData.temaDisciplinarioProcedimientoAlternativo || false,
-                id: formData.id_temaDisciplinarioProcedimientoAlternativo || null
-            },
-            lineamiento: {
-                status: formData.temaDisciplinarioLineamiento || false,
-                id: formData.id_temaDisciplinarioLineamiento || null
-            }
-        };
-    }
-
-    return datosParaBD;
-}
-
-// Función para obtener solo los valores booleanos de los checkboxes
-function obtenerValoresCheckboxes(formData) {
-    const checkboxes = {};
-    
-    // Temas principales
-    checkboxes.temaDerecho = formData.temaDerecho || false;
-    checkboxes.temaNorma = formData.temaNorma || false;
-    checkboxes.temaPromover = formData.temaPromover || false;
-    checkboxes.temaDisciplinario = formData.temaDisciplinario || false;
-    
-    // Sub-temas de Promover
-    for (let i = 1; i <= 9; i++) {
-        checkboxes[`temaPromover${i}`] = formData[`temaPromover${i}`] || false;
-    }
-    
-    // Sub-temas de Disciplinario
-    checkboxes.temaDisciplinarioCorrectivo = formData.temaDisciplinarioCorrectivo || false;
-    checkboxes.temaDisciplinarioProcedimientoMarco = formData.temaDisciplinarioProcedimientoMarco || false;
-    checkboxes.temaDisciplinarioProcedimientoAlternativo = formData.temaDisciplinarioProcedimientoAlternativo || false;
-    checkboxes.temaDisciplinarioLineamiento = formData.temaDisciplinarioLineamiento || false;
-    
-    return checkboxes;
-}
-
-
-
 
 const update = async () => {
 
     // 1. Snapshot correcto con console.log
     console.log('Editando datos (snapshot):', { ...form.value });
     dialog.value = false;
-    dialogSave.value = true;
+  //RBC  dialogSave.value = true;
     isFormDisabled.value = true; // Deshabilita el formulario después de guardar
     registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
-
+    console.log('Fecha a enviar al servidor:', form.value.fecha);
     if (!validateForm()) {
         dialog.value = false;
         toast.info('Debe ingresar los datos requeridos', {
@@ -792,7 +750,6 @@ const update = async () => {
         return false;
     }
 
-
     // ... (Tu lógica para construir comisionConstruccion, tema, etc. está bien) ...
   comisionConstruccion.value = {
         1: {status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
@@ -800,39 +757,6 @@ const update = async () => {
         3: {status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId},
         4: {status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId},
         5: {status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId}
-    };
-
-    tema.value = {
-        1: {status: form.value.temaDerecho,         id: form.value.id_temaDerecho },
-        2: {status: form.value.temaNorma,           id: form.value.id_temaNorma},         
-        3: {status: form.value.temaDisciplinario,   id: form.value.id_temaDisciplinario}, 
-        4: {status: form.value.temaSancion,         id: form.value.id_temaSancion},       
-        5: {status: form.value.temaAdopcion,        id: form.value.id_temaAdopcion},      
-        6: {status: form.value.temaAlternativo,     id: form.value.id_temaAlternativo},   
-        7: {status: form.value.temaRemision,        id: form.value.id_temaRemision},      
-        8: {status: form.value.temaTaller,          id: form.value.id_temaTaller},        
-        9: {status: form.value.temaPromover,        id: form.value.id_temaPromover},      
-        10:{status: form.value.temaSeguimiento ,    id: form.value.id_temaSeguimiento   }
-    };
-
-    temaPromover.value = {
-        1: {status: form.value.temaPromover1,       id: form.value.id_temaPromover1},     
-        2: {status: form.value.temaPromover2,       id: form.value.id_temaPromover2},     
-        3: {status: form.value.temaPromover3,       id: form.value.id_temaPromover3},     
-        4: {status: form.value.temaPromover4,       id: form.value.id_temaPromover4},     
-        5: {status: form.value.temaPromover5,       id: form.value.id_temaPromover5},     
-        6: {status: form.value.temaPromover6,       id: form.value.id_temaPromover6},     
-        7: {status: form.value.temaPromover7,       id: form.value.id_temaPromover7},     
-        8: {status: form.value.temaPromover8,       id: form.value.id_temaPromover8},     
-        9: {status: form.value.temaPromover9,       id: form.value.id_temaPromover9}      
-   
-    };
-
-    temaDisciplinario.value = {
-        10:{status:  form.value.temaDisciplinarioCorrectivo,id: form.value.id_temaDisciplinarioCorrectivo},
-        11:{status:  form.value.temaDisciplinarioProcedimientoMarco,id: form.value.id_temaDisciplinarioProcedimientoMarco},
-        12:{status:  form.value.temaDisciplinarioProcedimientoAlternativo,id: form.value.id_temaDisciplinarioProcedimientoAlternativo},
-        13:{status:  form.value.temaDisciplinarioLineamiento,id: form.value.id_temaDisciplinarioLineamiento}
     };
 
     comisionAprobacion.value = {
@@ -844,23 +768,15 @@ const update = async () => {
     };
 
 
-    // 2. Parseo de fechas seguro
-    const fechaRegistroISO = parseDateSafe(form.value.fecha);
-    const fechaAprobacionISO = parseDateSafe(form.value.fechaAprobacion);
-
-    if (!fechaRegistroISO || !fechaAprobacionISO) {
-         toast.error('Las fechas de registro o aprobación son inválidas.', {
-            autoClose: 3500,
-            position: toast.POSITION.TOP_RIGHT,
-        });
-        return; // Detener la ejecución si las fechas fallan
-    }
+  
+    const dateParts = (form.value.fecha || '').split("/");
+    const dateParts2 = (form.value.fecha || '').split("/"); 
 
     const payload2 = {
         id_pcpa_unidad_educativa: idUE,
-        fecha_registro: fechaRegistroISO,
+        fecha_registro: new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), 
         check_diagnostico_pcpa: form.value.registroAnterior,
-        fecha_aprobacion: fechaAprobacionISO,
+        fecha_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
         vigencia_aprobacion: form.value.vigenciaAprobacion,
         estado: 'MODIFICADO',
         usu_cre: username,
@@ -896,18 +812,18 @@ const update = async () => {
         return; // Detener la función si el guardado principal falla
     }
 
-    const constId = await findConstByCiAndUe();
+
 
     console.log("--- Iniciando  save4 (tema.value) ---", tema.value  );   
    // console.table(form.value); //una forma más compacta
-    // Usar las funciones
+   // Usar las funciones
     const temasPromoverMapeados = mapearTemasPromover(form.value);
-  ////  const datosParaBD = prepararDatosParaBD(form.value);
+   //  const datosParaBD = prepararDatosParaBD(form.value);
    // const valoresCheckboxes = obtenerValoresCheckboxes(form.value);
 
     console.log("Temas Promover Mapeados:", temasPromoverMapeados);
    // console.log("Datos para BD:", datosParaBD);
- //   console.log("Valores Checkboxes:", valoresCheckboxes);
+   //   console.log("Valores Checkboxes:", valoresCheckboxes);
 
         // --- EJECUCIÓN NUEVA LOGICA DE CREAR Y UPDATE---
     const resultadoFinal = compararActividades(  actividadesPromocion.value , temasPromoverMapeados);  //arrayDatos, jsonDatos
@@ -916,101 +832,15 @@ const update = async () => {
     procesarResultadosAPI(resultadoFinal);
 
     console.log("--- fin bucle save 4 ---");
-
-    if (form.value.temaDisciplinario) {
-        console.log("--- Iniciando bucle save50 (temaDisciplinario) ---", form.value.temaDisciplinario);
-        for (const item of Object.keys(temaDisciplinario.value)) {
-            if (temaDisciplinario.value[item].status) {
-                console.log('Procesando temaDisciplinario [item]:', item, 'Datos:',temaDisciplinario.value[item].id);
-                
-                const payload50 = {
-                    id_pcpa_construccion: constId,
-                    id_pcpa_actividades_tipo: item,
-                    nivel: 2,
-                    fec_aprobacion: fechaAprobacionISO,
-                    tiempo_vigencia: 0,
-                    declaracion_jurada: true,
-                    estado: 'ACTIVO',
-                    usu_cre: username,
-                    fec_cre: new Date()
-                };
-
-                try {
-                    console.log("bucle save50, payload50:", { ...payload50 });
-                    const res = await ConvivenciaPacifica.updateTareaPromover(temaDisciplinario.value[item].id, payload50);
-                    
-                    if (res.status === 201 || res.status === 200) {
-                         toast.info('Registro (disciplinario) guardado', {        autoClose: 3500,
-                position: toast.POSITION.TOP_RIGHT, });
-                    } else {
-                         toast.error('Registro (disciplinario) no modificado', {         autoClose: 3500,
-                position: toast.POSITION.TOP_RIGHT, });
-                    }
-                     console.log("fin bucle save50, item:", item, "respuesta:", res);
-
-                } catch (error) {
-                    console.error(`Error en save50 (item ${item}):`, error);
-                    toast.error(`Error guardando disciplinario ${item}: ${error.message}`);
-                }
-                
-            
-            }
-        }
-        console.log("--- fin bucle save50 ---");
-    }
-
-    if (form.value.temaPromover) {
-        console.log("--- Iniciando bucle save5 (temaPromover) ---");
-        for (const item of Object.keys(temaPromover.value)) {
-            if (temaPromover.value[item].status) {
-                 console.log('Procesando temaPromover [item]:', item, 'Datos:', temaPromover.value[item].id);
-
-                 const payload5 = {
-                    id_pcpa_construccion: constId,
-                    id_pcpa_actividades_tipo: item,
-                    nivel: 2,
-                    fec_aprobacion: fechaAprobacionISO,
-                    tiempo_vigencia: 0,
-                    declaracion_jurada: true,
-                    estado: 'ACTIVO',
-                    usu_cre: username,
-                    fec_cre: new Date()
-                };
-
-                try {
-                    console.log("ini save5, payload5:", { ...payload5 });
-                    const res = await ConvivenciaPacifica.updateTareaPromover( temaPromover.value[item].id, payload5);
-                    
-                    if (res.status === 201 || res.status === 200) {
-                         toast.info('Registro (promover) guardado', {         autoClose: 3500,
-                position: toast.POSITION.TOP_RIGHT, });
-                    } else {
-                         toast.error('Registro (promover) no modificado', {         autoClose: 3500,
-                position: toast.POSITION.TOP_RIGHT, });
-                    }
-                    console.log("fin bucle save5, item:", item, "respuesta:", res);
-
-                } catch (error) {
-                    console.error(`Error en save5 (item ${item}):`, error);
-                    toast.error(`Error guardando promover ${item}: ${error.message}`);
-                }
-
-             
-            }
-        }
-        console.log("--- fin bucle save5 ---");
-    }
-
-    /* ... (Bucle save6 comentado) ... */
-
+ 
     console.log("--- fin de todos los saves ---");
 
 };
 
  // Lógica para guardar un nuevo formulario
-const save = async () => {
+const createRec = async () => {
 
-    console.log('Guardando datos:', form.value);
+  //  console.log('Guardando datos:', form.value);
     dialog.value = false;
     dialogSave.value = true;
     isFormDisabled.value = true; // Deshabilita el formulario después de guardar
@@ -1127,7 +957,7 @@ const save = async () => {
         id_pcpa_unidad_educativa: save1.data.id,
         fecha_registro:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), //new Date( form.value.fecha).toISOString(),
         check_diagnostico_pcpa: form.value.registroAnterior,   
-        fecha_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
+        fecha_aprobacion: new Date(dateParts[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
         vigencia_aprobacion : form.value.vigenciaAprobacion,
 
         estado: 'ACTIVO',
@@ -1221,7 +1051,7 @@ const save = async () => {
 
             console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
             if(!(comisionConstruccion.value[item].id  === undefined ) ){ 
-                const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionConstruccion.value[item].id).then((res) => {
+             /*   const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionConstruccion.value[item].id).then((res) => {
                     console.log('comisionConstruccion.value[item].id: ',  comisionConstruccion.value[item].id);
 
                     if(res.status === 204){
@@ -1239,7 +1069,7 @@ const save = async () => {
                         });
                         return res;
                     }
-                });
+                });*/
             }
         }        
     });
@@ -1458,7 +1288,7 @@ const save = async () => {
             save6 = ConvivenciaPacifica.createMiembroComisionAprobacion(payload6).then((res) => {
                 if(res.status === 201){
              
-                        toast.info(`Registro save2.data.id ${id_pcpa_construccion} guardado correctamente`, { 
+                        toast.info(`Registro save2.data.id ${save2.data.id} guardado correctamente`, { 
                         autoClose: 3500,
                         position: toast.POSITION.TOP_RIGHT,
                     });
@@ -1521,70 +1351,56 @@ const uploadFileDiagnostico = () => {
     }
 };
 
-
-
-// --- Funciones Nuevas  para simular la consulta al endpoint de existencia del registro.---
-const XXXXcheckRegistroExistence = async () => {
-    isLoading.value = true;    
-    // const response = await ApiService.checkRegistro(userSie.value, token);    
-    try {        
-       //await new Promise(resolve => setTimeout(resolve, 800)); // Simula latencia       
-      
-        // consultamos si ya hay un registro.
-        if (readOnlyVar) { 
-              console.log("registro encontrado: ", '');  // false entonces NO existe, mostrar "Ingresar nuevo registro"
-          //  registroExiste = readOnlyVar; 
-        } else {
-            // Lógica si el SIE de la sesión es diferente al consultado
-           // registroExiste = readOnlyVar;
-        }
-
-        toast.info(`Estado del registro: ${registroExiste.value ? 'Existe' : 'No existe'}`, { autoClose: 2000 });
-
-    } catch (error) {
-        console.error('Error al verificar el registro:', error);
-        toast.error('Error al consultar el estado del registro.', { autoClose: 3000 });
-        registroExiste.value = false; // Asumir no existe en caso de error para no bloquear
-    } finally {
-        isLoading.value = false;
-    }
-};
-
-
-
-
+// Usamos el hook onMounted para asegurar que la asignación ocurra 
+// después de que el componente ha sido montado.
 onMounted(async() => {
-   // checkRegistroExistence(); // Ejecutar la verificación al montar el componente
 
     let user = JSON.parse(localStorage.getItem('user') || '');
     if(user && user.codigo_sie){
         form.value.sie = user.codigo_sie;
-        findInstitucionEducativa();
+        findUnidadesEducativasPorDirector();
         findMiembrosComisionConstruccion();
         findActividadesPromocion();
         username = localStorage.getItem('username') ;
-      //  form.value.vigenciaAprobacion=99;
-      //  form.value.fecha='01/01/2027';
-      //  form.value.fechaAprobacion='01/01/2028';
+
     isLoading.value = false;
     }
+
+
+// Simulación: Al cargar el componente, verificamos si existe un registro.
+    // En un caso real, esto sería una llamada a una API.
+    
+    // Asignamos un valor inicial para simular que existe un registro para modificar.
+    registroExiste.value = localStorage.getItem('existeEnBD')==='true' ? true : false ; 
+    
+    if (registroExiste.value) {
+        // Si el registro existe, precargamos un valor y mantenemos bloqueado
+      
+    } else {
+        // Si es un registro nuevo, asignamos la fecha de hoy, pero se mantiene bloqueado
+        // hasta que el usuario haga clic en "Ingresar nuevo registro"
+      //  form.value.fecha = getTodayDateFormatted(); 
+        isFormDisabled.value = true;
+    }
+
+
+
 }); 
 
-const findInstitucionEducativa = async () => {
+const findUnidadesEducativasPorDirector = async () => {
     console.log("form.value.sie:" , form.value.sie);
     const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
 
     if(String(form.value.sie).length === 8){
         const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
-           console.log("Respuesta del servidor:", res);
-             console.log("Tipo de res.data:", typeof res.data.data);
-            console.log("¿Es array res.data?:", Array.isArray(res.data.data));
+         //  console.log("Respuesta del servidor:", res);  //              console.log("Tipo de res.data:", typeof res.data.data);
+        //    console.log("¿Es array res.data?:", Array.isArray(res.data.data));
       const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
                     // O también: ue => ue.codigo_sie.toString() === codigo_sie
                     );
         console.log("listUnidadesEducativasPorDirector  encontrada: ", data);
-        if(data){
-       form.value.departamentoId = data.departamento_codigo;
+      if(data){
+        form.value.departamentoId = data.departamento_codigo;
         form.value.departamentoNombre = data.departamento;
        // form.value.municipioId = data.municipio_codigo;
         form.value.municipioNombre = data.distrito ;   // municipio;
@@ -1592,9 +1408,9 @@ const findInstitucionEducativa = async () => {
         form.value.nivel = data.nivel;
         form.value.modalidad = data.dependencia;
         form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
-            find.value = true;
-            institucionEducativa.value = data;
-            console.log("form.value.sie.length: ", form.value.sie.length);
+        find.value = true;
+        institucionEducativa.value = data;
+        console.log("form.value.sie.length: ", form.value.sie.length);
            
         }
     } else {
@@ -1623,68 +1439,68 @@ const findMiembrosComisionConstruccion = async () => {
              form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion    
           
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===1  ){// estudiante
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            //       console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionSocializacionEstudianteNombre= res.data[index].nombres_miembro ; 
          
             form.value.comisionSocializacionEstudianteId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===1  ){// director
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionSocializacionDirectorNombre= res.data[index].nombres_miembro  ;   
            // form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionSocializacionDirectorId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===1  ){// maestro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+                 //  console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionSocializacionMaestroNombre= res.data[index].nombres_miembro  ;  
           //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionSocializacionMaestroId= res.data[index].id_miembro  ;   
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===1  ){// padres
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+                 //  console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionSocializacionPadreNombre= res.data[index].nombres_miembro  ;      
           //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionSocializacionPadreId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===1  ){// otro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionSocializacionOtroNombre= res.data[index].nombres_miembro  ;    
          //   form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionSocializacionOtroId= res.data[index].id_miembro  ; 
         }
-       console.log(res.data[index]);
+     //  console.log(res.data[index]);
 
        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===2  ){// estudiante
-                   console.log("res.data[index].id_miembro : ", res.data[index].id_miembro  )
+               //    console.log("res.data[index].id_miembro : ", res.data[index].id_miembro  )
             form.value.comisionAprobacionEstudianteNombre= res.data[index].nombres_miembro ; 
             //form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionAprobacionEstudianteId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===2  ){// director
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+            //       console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionAprobacionDirectorNombre= res.data[index].nombres_miembro  ;   
            // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionAprobacionDirectorId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===2  ){// maestro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionAprobacionMaestroNombre= res.data[index].nombres_miembro  ;  
           //  form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionAprobacionMaestroId= res.data[index].id_miembro  ;   
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===2  ){// padres
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionAprobacionPadreNombre= res.data[index].nombres_miembro  ;      
            // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionAprobacionPadreId= res.data[index].id_miembro  ; 
         }
         if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===2  ){// otro
-                   console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
+             //      console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
             form.value.comisionAprobacionOtroNombre= res.data[index].nombres_miembro  ;    
          //   form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
             form.value.comisionAprobacionOtroId= res.data[index].id_miembro  ; 
         }
-       console.log(res.data[index]);
+      // console.log(res.data[index]);
 
     
     });
@@ -1726,7 +1542,7 @@ const findActividadesPromocion = async () => {
 
     res.data.map((data: {  nivel: number; id_pcpa_actividades_tipo: number; 
                         }, index:  number) => {
-         console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
+       //  console.log("id_pcpa_actividades_tipo: ", data.id_pcpa_actividades_tipo  )        
         if(res.data && res.data.length > 0 &&  data.nivel ===1 && data.id_pcpa_actividades_tipo===1  ){// temaDerecho
             form.value.id_temaDerecho= res.data[index].id_actividades_promocion  ;     
             form.value.temaDerecho= res.data[index].check_actividad_tipo ;      }
@@ -1865,6 +1681,14 @@ const onDateInputAprobacion = (event: any) => {
 
     // Lógica para reiniciar el formulario 
 const reset = () => {   
+
+   if (registroExiste.value ){
+      //  isFormDisabled.value = true; // Deshabilita el formulario después de guardar
+      // registroExiste.value = true; // Muestra el botón 'Modificar' la próxima vez
+          console.log('reset: registroExiste.value = true;');
+    dialogSave.value = false;
+    }
+   else{
     console.log('Limpiar formulario.');
     dialogSave.value = false;
     registroExiste.value = false; // Permite ingresar un nuevo registro
@@ -1921,7 +1745,7 @@ const reset = () => {
     form.value.fechaAprobacion = '';
     form.value.vigenciaAprobacion = '';
     form.value.validado = false;
-    dialogSave.value = false;
+  }
 };
 
 const validateForm = () => {
@@ -1930,11 +1754,13 @@ const validateForm = () => {
     if (!form.value.sie || !form.value.unidadEducativa) validationErrors.value['sie'] = true;
     else delete validationErrors.value['sie'];
 
-    if (!form.value.fechaAprobacion) validationErrors.value['fecha'] = true;
+    if (!form.value.fecha) validationErrors.value['fecha'] = true;
     else delete validationErrors.value['fecha'];
 
-    if ( (!form.value.comisionSocializacionEstudiante && !form.value.comisionSocializacionEstudianteNombre) && (!form.value.comisionSocializacionDirector && !form.value.comisionSocializacionDirectorNombre)  && (!form.value.comisionSocializacionMaestro &&  !form.value.comisionSocializacionMaestroNombre) && (!form.value.comisionSocializacionPadre && !form.value.comisionSocializacionPadreNombre)  && (!form.value.comisionSocializacionOtro && !form.value.comisionSocializacionOtroNombre) ) validationErrors.value['comision'] = true;
-    else delete validationErrors.value['comision'];
+if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = true;
+    else delete validationErrors.value['fechaAprobacion'];
+   //// if ( (!form.value.comisionSocializacionEstudiante && !form.value.comisionSocializacionEstudianteNombre) && (!form.value.comisionSocializacionDirector && !form.value.comisionSocializacionDirectorNombre)  && (!form.value.comisionSocializacionMaestro &&  !form.value.comisionSocializacionMaestroNombre) && (!form.value.comisionSocializacionPadre && !form.value.comisionSocializacionPadreNombre)  && (!form.value.comisionSocializacionOtro && !form.value.comisionSocializacionOtroNombre) ) validationErrors.value['comision'] = true;
+   // else delete validationErrors.value['comision'];
 
     if (!form.value.temaDerecho && !form.value.temaNorma && !form.value.temaDisciplinario && !form.value.temaSancion && !form.value.temaAdopcion && !form.value.temaAlternativo && !form.value.temaRemision && !form.value.temaTaller && !form.value.temaPromover && !form.value.temaSeguimiento) validationErrors.value['tema'] = true;
     else delete validationErrors.value['tema'];
@@ -1944,14 +1770,11 @@ const validateForm = () => {
         else delete validationErrors.value['temaPromover'];
     }
 
-   // if (!form.value.comisionAprobacionEstudiante && !form.value.comisionAprobacionDirector && !form.value.comisionAprobacionMaestro && !form.value.comisionAprobacionPadre && !form.value.comisionAprobacionOtro) validationErrors.value['comisionAprobacion'] = true;
-   if ( (!form.value.comisionAprobacionEstudiante && !form.value.comisionAprobacionEstudianteNombre) && (!form.value.comisionAprobacionDirector && !form.value.comisionAprobacionDirectorNombre)  && (!form.value.comisionAprobacionMaestro &&  !form.value.comisionAprobacionMaestroNombre) && (!form.value.comisionAprobacionPadre && !form.value.comisionAprobacionPadreNombre)  && (!form.value.comisionAprobacionOtro && !form.value.comisionAprobacionOtroNombre) ) validationErrors.value['comision'] = true;
-   else delete validationErrors.value['comisionAprobacion'];
+//   if ( (!form.value.comisionAprobacionEstudiante && !form.value.comisionAprobacionEstudianteNombre) && (!form.value.comisionAprobacionDirector && !form.value.comisionAprobacionDirectorNombre)  && (!form.value.comisionAprobacionMaestro &&  !form.value.comisionAprobacionMaestroNombre) && (!form.value.comisionAprobacionPadre && !form.value.comisionAprobacionPadreNombre)  && (!form.value.comisionAprobacionOtro && !form.value.comisionAprobacionOtroNombre) ) validationErrors.value['comision'] = true;
+  // else delete validationErrors.value['comisionAprobacion'];
 
-    if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = true;
-    else delete validationErrors.value['fechaAprobacion'];
 
-    if (!form.value.fechaAprobacion) validationErrors.value['vigenciaAprobacion'] = true;
+    if (!form.value.vigenciaAprobacion) validationErrors.value['vigenciaAprobacion'] = true;
     else delete validationErrors.value['vigenciaAprobacion'];
 
     if (!form.value.validado) validationErrors.value['validado'] = true;
@@ -2221,11 +2044,11 @@ const validateForm = () => {
     <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
             <v-card-title class="text-h5">Mensaje</v-card-title>
-            <v-card-text>Registro guardado. ¿Desea ingresar un nuevo registro? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
+            <v-card-text>Registro guardado. ¿Ingresar uno nuevo o modificar el actual?</v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">NO</v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset">SI</v-btn>
+                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">MODIFICAR REGISTRO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="reset">NUEVO REGISTRO</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>
