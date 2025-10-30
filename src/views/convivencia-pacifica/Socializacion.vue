@@ -1,732 +1,310 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-//import UiParentCard from '@/components/shared/UiParentCard.vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
-import Auth from '@/services/Auth'; 
+import Auth from '@/services/Auth';
 
-// import { useNavbarStore } from '@/stores/navbar';
-// const store = useNavbarStore();  
-// store.setPath('/convivencia/pacifica');
+
+// --- Refs y Estado (sin cambios) ---
 const router = useRouter();
-
 const valid = ref(false);
 const dialog = ref(false);
 const dialogSave = ref(false);
-const validationErrors = ref();
+const validationErrors = ref<Record<string, boolean>>({});
 const find = ref(false);
 const variusSie = ref(false);
 
 const institucionEducativa = ref();
 const miembrosComision = ref();
-const comisionSocializacion = ref();
-const comisionImplementacion = ref();
-const actividadesEjecucion = ref();
+// const comisionSocializacion = ref(); // Ya no es necesario, se procesa en la función de guardado
+// const comisionImplementacion = ref(); // Ya no es necesario
+// const actividadesEjecucion = ref(); // Ya no es necesario
 
 const sieRules = [
-    (value: any) => {
-        if (value) return true
-        return 'El SIE es requerido'
-    },
-    (value: any) => {
-        if (value?.length === 8) return true
-        return 'El código SIE requiere 8 dígitos.'
-    },
+    (value: any) => !!value || 'El SIE es requerido',
+    (value: any) => (value?.length === 8) || 'El código SIE requiere 8 dígitos.',
 ];
 
-let username: string | null ;
+let username: string | null;
 const form: any = ref({
     sie: null,
     unidadEducativa: '',
-    comisionSocializacionEstudiante: false,
-    comisionSocializacionDirector: false,
+   // Miembros de la comisión SOCIALIZACION
+    comisionSocializacionEstudiante: true,
+    comisionSocializacionDirector: true,
     comisionSocializacionMaestro: false,
     comisionSocializacionPadre: false,
     comisionSocializacionOtro: false,
-    comisionSocializacionEstudianteNombre: '',
-    comisionSocializacionDirectorNombre: '',
+    comisionSocializacionEstudianteNombre: 'Estudiante1 SOC,Estudiante2  SOC',
+    comisionSocializacionDirectorNombre: 'Director1 soc, Director2 socializacion',
     comisionSocializacionMaestroNombre: '',
     comisionSocializacionPadreNombre: '',
     comisionSocializacionOtroNombre: '',
-    comisionSocializacionIdConstruccion: '',
-    comisionSocializacionIdMiembro: '',
+    comisionSocializacionEstudianteId: null,
+    comisionSocializacionDirectorId: null,
+    comisionSocializacionMaestroId: null,
+    comisionSocializacionPadreId: null,
+    comisionSocializacionOtroId: null,
 
+    //  Miembros de la comisión Implementación
     comisionImplementacionEstudiante: false,
     comisionImplementacionDirector: false,
     comisionImplementacionMaestro: false,
     comisionImplementacionPadre: false,
     comisionImplementacionOtro: false,
-    comisionImplementacionEstudianteNombre: '',
-    comisionImplementacionDirectorNombre: '',
+    comisionImplementacionEstudianteNombre: 'Estudiante1 imp,Estudiante2 imp',
+    comisionImplementacionDirectorNombre: 'Director1 Implementación, Director2 Implementación',
     comisionImplementacionMaestroNombre: '',
     comisionImplementacionPadreNombre: '',
     comisionImplementacionOtroNombre: '',
-    comisionImplementacionIdConstruccion: '',
-    comisionImplementacionIdMiembro: '',
+    comisionImplementacionEstudianteId: null,
+    comisionImplementacionDirectorId: null,
+    comisionImplementacionMaestroId: null,
+    comisionImplementacionPadreId: null,
+    comisionImplementacionOtroId: null,
 
-    actividad1: null,
-    actividad2: null,
+    actividad1: 'MEDIOS DE COMUNICACIÓN INTERNA',
+    actividad2: 'OTROS',
     actividad3: null,
     actividad4: null,
     actividad5: null,
-    actividad1Fecha: '',
-    actividad2Fecha: '',
+    actividad1Fecha: '15/12/2025',
+    actividad2Fecha: '17/08/2026',
     actividad3Fecha: '',
     actividad4Fecha: '',
-    actividad5Fecha: '',    
+    actividad5Fecha: '',
+    actividad1Id: null,
+    actividad2Id: null,
+    actividad3Id: null,
+    actividad4Id: null,
+    actividad5Id: null,
     validado: false
 });
+   console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
+   
+const readOnlyVar = ref(localStorage.getItem('existeMiembro') === 'true');
+// registroExiste se actualice automáticamente cuando cambie readOnlyVar, usa un computed en lugar de otro ref:
+const registroExiste = computed(() => readOnlyVar.value);
+console.log('existeEnBD-readOnlyVar:', readOnlyVar.value);
 
-// --- Variables de Estado Nuevas ---
-const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
-console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
-const registroExiste = ref(readOnlyVar);
 const isLoading = ref(true);
-const dataUE = JSON.parse(localStorage.getItem('dataUE'));
-const idUE = dataUE[0].id; //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+const dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
+const idUE = dataUE[0].id;
 
+const isFormDisabled = ref(true);
+const isFormDisabledFromNew = ref(true);
 
-// Controla si los campos del formulario están deshabilitados o no
-const isFormDisabled = ref(true); 
-const isFormDisabledFromNew = ref(true); 
+// --- Funciones de Control de Formulario (sin cambios) ---
 
-// Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
 const iniciarNuevoRegistro = () => {
     console.log('Ingresar nuevo registro clickeado.');
-   isFormDisabled.value = false;
-   isFormDisabledFromNew.value = false;
+    isFormDisabled.value = false;
+    isFormDisabledFromNew.value = false;
+  //  registroExiste.value = false; // Importante: marcar que es un nuevo registro
+    // Aquí también deberías limpiar el formulario (reset)
+  //RBC  reset(); 
 };
 
-// Habilita el formulario para editar un registro existente y deshabilita el botón
 const modificarRegistro = () => {
     console.log('modificar registro .');
     isFormDisabled.value = false;
+  //  registroExiste.value = true; // Importante: marcar que es una modificación
 };
 
-// registrar el formulario para editar o crear un nuevo registro
-const registro = () => {
-    console.log('modificar registro .');
-    isFormDisabled.value = true;
+// --- Funciones de Carga de Datos (onMounted, finders...) (Con leves mejoras) ---
 
-    if (registroExiste.value ){
-       update();
-    }
-    else{
-     save();
-    }
-
-};
-
-onMounted(async() => {
-
-    let user = JSON.parse(localStorage.getItem('user') || '');
-    if(user && user.codigo_sie){
+onMounted(async () => {
+    let user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user && user.codigo_sie) {
         form.value.sie = user.codigo_sie;
-        //const resInst = await findInstitucionEducativa();
-           findUnidadesEducativasPorDirector();
-        const resMiem = await findMiembroComision();
-        const resAct = await findActividadesEjecutadas();
-        username = localStorage.getItem('username') ;
+        username = localStorage.getItem('username');
+        
+        // Ejecutar búsquedas en paralelo
+        try {
+            await Promise.all([
+                findUnidadesEducativasPorDirector(),
+                findMiembroComision(),
+                findActividadesEjecutadas()
+            ]);
+        } catch (error) {
+            console.error("Error al cargar datos iniciales:", error);
+            toast.error('Error al cargar datos iniciales.', { autoClose: 3000 });
+        } finally {
+            isLoading.value = false;
+        }
+    } else {
         isLoading.value = false;
+        // Manejar caso donde no hay usuario o SIE
     }
+});
 
-
-}); 
-
-/*
-const findInstitucionEducativa = async () => {
-    console.log(form.value.sie);
-    if(String(form.value.sie).length === 8){
-        const res = await ConvivenciaPacifica.findInstitucionEducativa(form.value.sie);
-        console.log("res", res);
-        if(res.data && res.data.length > 0){
-            form.value.unidadEducativa = res.data[0].institucioneducativa;
-            find.value = true;
-            institucionEducativa.value = res.data[0];
-        }
-    } else {
-        institucionEducativa.value = null;
-        find.value = false;
-        form.value.unidadEducativa = '';
-    }
-}; */
 const findUnidadesEducativasPorDirector = async () => {
-    console.log("form.value.sie:" , form.value.sie);
-    const  dataAuth =  {username: localStorage.getItem('username'), password: localStorage.getItem('password')};
+    console.log("form.value.sie:", form.value.sie);
+    const dataAuth = { username: localStorage.getItem('username'), password: localStorage.getItem('password') };
 
-    if(String(form.value.sie).length === 8){
-        const res = await  Auth.listUnidadesEducativasPorDirector(dataAuth); // ConvivenciaPacifica.findInstitucionEducativa(form.value.sie); 
-         //  console.log("Respuesta del servidor:", res);  //              console.log("Tipo de res.data:", typeof res.data.data);
-        //    console.log("¿Es array res.data?:", Array.isArray(res.data.data));
-      const data = res?.data.data.find( ue => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))
-                    // O también: ue => ue.codigo_sie.toString() === codigo_sie
-                    );
-        console.log("listUnidadesEducativasPorDirector  encontrada: ", data);
-      if(data){
-        form.value.departamentoId = data.departamento_codigo;
-        form.value.departamentoNombre = data.departamento;
-       // form.value.municipioId = data.municipio_codigo;
-        form.value.municipioNombre = data.distrito ;   // municipio;
-        form.value.unidadEducativa = data.nombre_unidad_educativa ;  // institucioneducativa;
-        form.value.nivel = data.nivel;
-        form.value.modalidad = data.dependencia;
-        form.value.director = data.nombre_director + ' ' + data.ap_paterno_director + ' ' + data.ap_materno_director  // director;
-        find.value = true;
-        institucionEducativa.value = data;
-        console.log("form.value.sie.length: ", form.value.sie.length);
-           
-        }
-    } else {
+    if (String(form.value.sie).length !== 8) {
         institucionEducativa.value = null;
         find.value = false;
-        form.value.departamentoId = null;
-        form.value.departamentoNombre = '';
-        form.value.municipioId = null;
-        form.value.municipioNombre = '';
-        form.value.unidadEducativa = '';
-        form.value.nivel = '';
-        form.value.modalidad = '';
-        form.value.director = '';
-        console.warn("No se encontró ninguna institución educativa para el SIE:", sie); 
+        // Limpiar campos del form
+        Object.assign(form.value, {
+            departamentoId: null, departamentoNombre: '', municipioId: null,
+            municipioNombre: '', unidadEducativa: '', nivel: '',
+            modalidad: '', director: ''
+        });
+        console.warn("SIE no válido.");
+        return;
     }
-}; 
-const findMiembroComision = async () => {
-    console.log(form.value.sie);
-    if(String(form.value.sie).length === 8){
-        const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);//listMiembroComision
-        console.log("res", res);
 
-        if(res.data && res.data.length > 0){
-            const idComisionSocializacionEstudiante = (obj: any) => obj.id_comision_tipo === 3 && obj.id_miembro_tipo === 1;
-            const idComisionSocializacionDirector = (obj: any) => obj.id_comision_tipo === 3 && obj.id_miembro_tipo === 2;
-            const idComisionSocializacionMaestro = (obj: any) => obj.id_comision_tipo === 3 && obj.id_miembro_tipo === 3;
-            const idComisionSocializacionPadre = (obj: any) => obj.id_comision_tipo === 3 && obj.id_miembro_tipo === 4;
-            const idComisionSocializacionOtro = (obj: any) => obj.id_comision_tipo === 3 && obj.id_miembro_tipo === 5;
+    try {
+        const res = await Auth.listUnidadesEducativasPorDirector(dataAuth);
+        const data = res?.data.data.find((ue: any) => ue.codigo_sie === Number(localStorage.getItem('codigo_sie')));
 
-            form.value.comisionSocializacionEstudiante = res.data.some(idComisionSocializacionEstudiante);
-            form.value.comisionSocializacionDirector = res.data.some(idComisionSocializacionDirector);
-            form.value.comisionSocializacionMaestro = res.data.some(idComisionSocializacionMaestro);
-            form.value.comisionSocializacionPadre = res.data.some(idComisionSocializacionPadre);
-            form.value.comisionSocializacionOtro = res.data.some(idComisionSocializacionOtro);
-
-            form.value.comisionSocializacionEstudianteNombre = res.data.find(idComisionSocializacionEstudiante)?.nombres_miembro;
-            form.value.comisionSocializacionDirectorNombre = res.data.find(idComisionSocializacionDirector)?.nombres_miembro;
-            form.value.comisionSocializacionMaestroNombre = res.data.find(idComisionSocializacionMaestro)?.nombres_miembro;
-            form.value.comisionSocializacionPadreNombre = res.data.find(idComisionSocializacionPadre)?.nombres_miembro;
-            form.value.comisionSocializacionOtroNombre = res.data.find(idComisionSocializacionOtro)?.nombres_miembro;
-
-            //form.value.comisionSocializacionIdMiembro=res.data.find(idComisionSocializacionOtro)?.id_miembro  ; 
-            form.value.comisionSocializacionEstudianteId = res.data.find(idComisionSocializacionEstudiante)?.id_miembro;
-            form.value.comisionSocializacionDirectorId = res.data.find(idComisionSocializacionDirector)?.id_miembro;
-            form.value.comisionSocializacionMaestroId = res.data.find(idComisionSocializacionMaestro)?.id_miembro;
-            form.value.comisionSocializacionPadreId = res.data.find(idComisionSocializacionPadre)?.id_miembro;
-            form.value.comisionSocializacionOtroId = res.data.find(idComisionSocializacionOtro)?.id_miembro;
-
-            const idComisionImplementacionEstudiante = (obj: any) => obj.id_comision_tipo === 4 && obj.id_miembro_tipo === 1;
-            const idComisionImplementacionDirector = (obj: any) => obj.id_comision_tipo === 4 && obj.id_miembro_tipo === 2;
-            const idComisionImplementacionMaestro = (obj: any) => obj.id_comision_tipo === 4 && obj.id_miembro_tipo === 3;
-            const idComisionImplementacionPadre = (obj: any) => obj.id_comision_tipo === 4 && obj.id_miembro_tipo === 4;
-            const idComisionImplementacionOtro = (obj: any) => obj.id_comision_tipo === 4 && obj.id_miembro_tipo === 5;
-
-            form.value.comisionImplementacionEstudiante = res.data.some(idComisionImplementacionEstudiante);
-            form.value.comisionImplementacionDirector = res.data.some(idComisionImplementacionDirector);
-            form.value.comisionImplementacionMaestro = res.data.some(idComisionImplementacionMaestro);
-            form.value.comisionImplementacionPadre = res.data.some(idComisionImplementacionPadre);
-            form.value.comisionImplementacionOtro = res.data.some(idComisionImplementacionOtro);
-
-            form.value.comisionImplementacionEstudianteNombre = res.data.find(idComisionImplementacionEstudiante)?.nombres_miembro;
-            form.value.comisionImplementacionDirectorNombre = res.data.find(idComisionImplementacionDirector)?.nombres_miembro;
-            form.value.comisionImplementacionMaestroNombre = res.data.find(idComisionImplementacionMaestro)?.nombres_miembro;
-            form.value.comisionImplementacionPadreNombre = res.data.find(idComisionImplementacionPadre)?.nombres_miembro;
-            form.value.comisionImplementacionOtroNombre = res.data.find(idComisionImplementacionOtro)?.nombres_miembro;
-
-            form.value.comisionImplementacionEstudianteId = res.data.find(idComisionImplementacionEstudiante)?.id_miembro;
-            form.value.comisionImplementacionDirectorId = res.data.find(idComisionImplementacionDirector)?.id_miembro;
-            form.value.comisionImplementacionMaestroId = res.data.find(idComisionImplementacionMaestro)?.id_miembro;
-            form.value.comisionImplementacionPadreId = res.data.find(idComisionImplementacionPadre)?.id_miembro;
-            form.value.comisionImplementacionOtroId = res.data.find(idComisionImplementacionOtro)?.id_miembro;
-
-            miembrosComision.value = res.data;
-            console.log(res.data);
-            console.log(res.data.some(idComisionSocializacionEstudiante))
-            console.log(res.data.find(idComisionSocializacionEstudiante)?.nombres_miembro)
+        if (data) {
+            Object.assign(form.value, {
+                departamentoId: data.departamento_codigo,
+                departamentoNombre: data.departamento,
+                municipioNombre: data.distrito,
+                unidadEducativa: data.nombre_unidad_educativa,
+                nivel: data.nivel,
+                modalidad: data.dependencia,
+                director: `${data.nombre_director} ${data.ap_paterno_director} ${data.ap_materno_director}`
+            });
+            find.value = true;
+            institucionEducativa.value = data;
+        } else {
+            console.warn("No se encontró ninguna institución educativa para el SIE:", form.value.sie);
+            find.value = false;
+            institucionEducativa.value = null;
         }
-    } else {
+    } catch (error) {
+        console.error("Error en findUnidadesEducativasPorDirector:", error);
+        toast.error('Error al buscar la unidad educativa.', { autoClose: 3000 });
+    }
+};
+
+const findMiembroComision = async () => {
+    if (String(form.value.sie).length !== 8) {
+        miembrosComision.value = null;
+        return;
+    }
+    
+    try {
+        const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
+        miembrosComision.value = res.data; // Guardar todos los miembros
+
+        if (res.data && res.data.length > 0) {
+            // Lógica para poblar el formulario (Socialización - Tipo 3)
+            const mapMiembro = (comisionTipo: number, miembroTipo: number) => {
+                return res.data.find((obj: any) => obj.id_comision_tipo === comisionTipo && obj.id_miembro_tipo === miembroTipo);
+            };
+
+            const socializacionTipos = [
+                { tipo: 1, key: 'Estudiante' }, { tipo: 2, key: 'Director' },
+                { tipo: 3, key: 'Maestro' }, { tipo: 4, key: 'Padre' }, { tipo: 5, key: 'Otro' }
+            ];
+
+            socializacionTipos.forEach(item => {
+                const miembro = mapMiembro(3, item.tipo);
+                form.value[`comisionSocializacion${item.key}`] = !!miembro;
+                form.value[`comisionSocializacion${item.key}Nombre`] = miembro?.nombres_miembro || '';
+                form.value[`comisionSocializacion${item.key}Id`] = miembro?.id_miembro || null;
+            });
+
+            // Lógica para poblar el formulario (Implementación - Tipo 4)
+            socializacionTipos.forEach(item => {
+                const miembro = mapMiembro(4, item.tipo);
+                form.value[`comisionImplementacion${item.key}`] = !!miembro;
+                form.value[`comisionImplementacion${item.key}Nombre`] = miembro?.nombres_miembro || '';
+                form.value[`comisionImplementacion${item.key}Id`] = miembro?.id_miembro || null;
+            });
+
+        } else {
+             miembrosComision.value = null;
+        }
+    } catch (error) {
+        console.error("Error en findMiembroComision:", error);
+        toast.error('Error al buscar miembros de comisión.', { autoClose: 3000 });
         miembrosComision.value = null;
     }
-}; 
+};
 
-  
 const findActividadesEjecutadas = async () => {
-    console.log('form.value.sie :', form.value.sie);
-
-    const res = await ConvivenciaPacifica.findActividadesEjecutadas(form.value.sie);
-    console.log("res", res);
-    let dateParts ;
-  
-       
-    res.data.map((data: {   id_pcpa_actividades_tipo: number;    }, index:  number) => {
-              console.log("id_actividades_ejecutadas: ", res.data[index].id_actividades_ejecutadas  )     
-      
-         dateParts = (res.data[index].fec_actividad || '').split("-");
-        if(res.data && res.data.length > 0 && data.id_pcpa_actividades_tipo===11  ){// 
-            form.value.actividad1Id= res.data[index].id_actividades_ejecutadas ;     
-           form.value.actividad1= res.data[index].desc_actividades_ejecutadas ;   
-            form.value.actividad1Fecha= dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0]; //  res.data[index].fec_actividad ;  
-           }
-        if(res.data && res.data.length > 0 && data.id_pcpa_actividades_tipo===12  ){// 
-        form.value.actividad2Id= res.data[index].id_actividades_ejecutadas ;     
-        form.value.actividad2= res.data[index].desc_actividades_ejecutadas ;   
-        form.value.actividad2Fecha= dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0]; // res.data[index].fec_actividad ;  
-        }
-        if(res.data && res.data.length > 0 && data.id_pcpa_actividades_tipo===13  ){// 
-        form.value.actividad3Id= res.data[index].id_actividades_ejecutadas ;     
-        form.value.actividad3= res.data[index].desc_actividades_ejecutadas ;   
-        form.value.actividad3Fecha=dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0]; //  res.data[index].fec_actividad ;  
-        }
-        if(res.data && res.data.length > 0 && data.id_pcpa_actividades_tipo===14  ){// 
-        form.value.actividad4Id= res.data[index].id_actividades_ejecutadas ;     
-        form.value.actividad4= res.data[index].desc_actividades_ejecutadas ;   
-        form.value.actividad4Fecha= dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0]; // res.data[index].fec_actividad ;  
-        }
-        if(res.data && res.data.length > 0 && data.id_pcpa_actividades_tipo===15  ){// 
-        form.value.actividad5Id= res.data[index].id_actividades_ejecutadas ;     
-        form.value.actividad5= res.data[index].desc_actividades_ejecutadas ;   
-        form.value.actividad5Fecha=dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0]; //  res.data[index].fec_actividad ;  
-        }
-                                                                                                      
-      
-       console.log(res.data[index]);
-
-    
-    });
-
-    //actividadesEjecucion.value = res.data[0];           
+     try {
+        const res = await ConvivenciaPacifica.findActividadesEjecutadas(form.value.sie);
         
+        const formatFecha = (fecha: string) => {
+            if (!fecha) return '';
+            const dateParts = fecha.split("-"); // Asume YYYY-MM-DD
+            if (dateParts.length === 3) {
+                return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`; // DD/MM/YYYY
+            }
+            return '';
+        };
 
-}; 
+        if (res.data && res.data.length > 0) {
+            // Mapeo de tipos de actividad a claves del formulario
+            const actividadTipoMap: { [key: number]: string } = {
+                11: 'actividad1', 12: 'actividad2',
+                13: 'actividad3', 14: 'actividad4', 15: 'actividad5'
+            };
 
-
-
-const onDateInput1 = (event: any) => {
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-    form.value.actividad1Fecha = onDateInput(cleanedInput);
+            res.data.forEach((data: any) => {
+                const keyBase = actividadTipoMap[data.id_pcpa_actividades_tipo];
+                if (keyBase) {
+                    form.value[`${keyBase}Id`] = data.id_actividades_ejecutadas;
+                    form.value[keyBase] = data.desc_actividades_ejecutadas;
+                    form.value[`${keyBase}Fecha`] = formatFecha(data.fec_actividad);
+                }
+            });
+            // Si hay al menos una actividad, marcamos que el registro existe
+            if(res.data.length > 0) registroExiste.value = true;
+        }
+    } catch (error) {
+        console.error("Error en findActividadesEjecutadas:", error);
+        toast.error('Error al buscar actividades.', { autoClose: 3000 });
+    }
 };
 
-const onDateInput2 = (event: any) => {
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-    form.value.actividad2Fecha = onDateInput(cleanedInput);
-};
+// --- Funciones de Formateo de Inputs (sin cambios) ---
 
-
-const onDateInput3 = (event: any) => {
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-    form.value.actividad3Fecha = onDateInput(cleanedInput);
-};
-
-
-const onDateInput4 = (event: any) => {
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-    form.value.actividad4Fecha = onDateInput(cleanedInput);
-};
-
-
-const onDateInput5 = (event: any) => {
-    const cleanedInput = event.target.value.replace(/\D/g, '');
-    form.value.actividad5Fecha = onDateInput(cleanedInput);
-};
-
-
-const onDateInput = (cleanedInput: any) => {
+const onDateInput = (cleanedInput: string) => {
     if (cleanedInput.length <= 2) {
         return cleanedInput;
     } else if (cleanedInput.length <= 4) {
         return cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
-    } else if (cleanedInput.length <= 8) {
-        return cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
-    } else {
-        return cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2, 4) + '/' + cleanedInput.slice(4, 8);
     }
+    // Limita a 8 dígitos (DDMMYYYY)
+    const truncatedInput = cleanedInput.slice(0, 8);
+    return truncatedInput.slice(0, 2) + '/' + truncatedInput.slice(2, 4) + '/' + truncatedInput.slice(4, 8);
 };
 
-const save = async () => {
-    console.log(form.value);
+const onDateInput1 = (event: any) => { form.value.actividad1Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
+const onDateInput2 = (event: any) => { form.value.actividad2Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
+const onDateInput3 = (event: any) => { form.value.actividad3Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
+const onDateInput4 = (event: any) => { form.value.actividad4Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
+const onDateInput5 = (event: any) => { form.value.actividad5Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
 
-    if (!validateForm()) {
-        dialog.value = false;  
-        toast.info('Debe ingresar los datos requeridos', {
-            autoClose: 3000,
-            position: toast.POSITION.TOP_RIGHT,
-        });
-        return false;
+// --- Validación (sin cambios) ---
+
+const validateForm = () => {
+    validationErrors.value = {};
+    const { actividad1, actividad2, actividad3, actividad4, actividad5,
+            actividad1Fecha, actividad2Fecha, actividad3Fecha, actividad4Fecha, actividad5Fecha } = form.value;
+
+    if (!actividad1 && !actividad2 && !actividad3 && !actividad4 && !actividad5) {
+        validationErrors.value['actividad'] = true;
     }
-
-    comisionSocializacion.value = {
-        1: {status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
-        2: {status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId},
-        3: {status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId},
-        4: {status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId},
-        5: {status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId}
-    };
-
-    comisionImplementacion.value = {
-        1: {status: form.value.comisionImplementacionEstudiante, value: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId},
-        2: {status: form.value.comisionImplementacionDirector, value: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId},
-        3: {status: form.value.comisionImplementacionMaestro, value: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId},
-        4: {status: form.value.comisionImplementacionPadre, value: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId},
-        5: {status: form.value.comisionImplementacionOtro, value: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId}
-    };
-
-
-
-    actividadesEjecucion.value = {
-        1: {fecha: form.value.actividad1Fecha, value: form.value.actividad1, id: form.value.actividad1Id },
-        2: {fecha: form.value.actividad2Fecha, value: form.value.actividad2, id: form.value.actividad2Id},
-        3: {fecha: form.value.actividad3Fecha, value: form.value.actividad3, id: form.value.actividad3Id},
-        4: {fecha: form.value.actividad4Fecha, value: form.value.actividad4, id: form.value.actividad4Id},
-        5: {fecha: form.value.actividad5Fecha, value: form.value.actividad5, id: form.value.actividad5Id}
-		
-    };
-
-
-    let payload3 ;
-    let save3;
-  
-    await Object.keys(comisionSocializacion.value).map((item, key) => {
-        if(comisionSocializacion.value[item].status && comisionSocializacion.value[item].value ){ //  ||  comisionConstruccion.value[item].length >0
-            console.log(item, key);
-
-            payload3 = {
-                id_pcpa_construccion: miembrosComision.value[0].id,
-                id_pcpa_comision_tipo: 3,
-                id_pcpa_miembro_tipo: item,     
-                orden: key + 1,
-                nombres_miembro: comisionSocializacion.value[item].value,
-                apellidos_miembro: '', 
-                check_miembro_comision: comisionSocializacion.value[item].status,                    
-                estado: 'ACTIVO' ,
-                usu_cre: username,
-                fec_cre: new Date()
-            }
-
-           // ueggPcpaMiembroComision
-            save3 = ConvivenciaPacifica.createMiembroComision(payload3).then((res) => {
-                if(res.status === 201){
-                    toast.info('Registro guardado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no guardado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-
-          
-
-        }    
-        if(!(comisionSocializacion.value[item].id  === undefined ) ){  // comisionSocializacion.value[item].status===false ||  && 
-            const delete2 =  ConvivenciaPacifica.deleteMiembroComision(comisionSocializacion.value[item].id).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-        }
-
-    });
-
-    let payload6;
-    let save6;
-    await Object.keys(comisionImplementacion.value).map((item, key) => {
-        if( comisionImplementacion.value[item].status && comisionImplementacion.value[item].value){ 
-            console.log('comisionImplementacion item, key: ', item, key);
-            payload6 = {
-                id_pcpa_construccion: miembrosComision.value[0].id,
-                id_pcpa_comision_tipo: 4,  // implmentacion
-                id_pcpa_miembro_tipo: item,
-                orden: key + 1,
-                nombres_miembro: comisionImplementacion.value[item].value,
-                apellidos_miembro: '',  
-                check_miembro_comision: comisionImplementacion.value[item].status,                    
-                estado: 'ACTIVO' ,
-                usu_cre: username,
-                fec_cre: new Date()
-            }
-                  //  ueggPcpaMiembroComision comisionImplementacion
-            save6 = ConvivenciaPacifica.createMiembroComision(payload6).then((res) => {
-                if(res.status === 201){
-                    toast.info('Registro guardado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no guardado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-
-
-        }        
-
-        if(!(comisionImplementacion.value[item].id  === undefined ) ){  // comisionImplementacion.value[item].status===false ||  && 
-              const delete3 =  ConvivenciaPacifica.deleteMiembroComision(comisionImplementacion.value[item].id ? comisionImplementacion.value[item].id : 0).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-            });
-        }
-
-
-    });
-    
-    console.log("save6", save6);               
-      
-     const constId = await findConstByCiAndUe();
-    if( typeof(form.value.actividad1) === 'object' ? form.value.actividad1 && form.value.actividad1.name.length : !(form.value.actividad1=== 'undefined')  ){
-        var dateParts = (form.value.actividad1Fecha).split("/");
-           
-        const payload = {
-            id_pcpa_actividades_tipo:  11,// form.value.actividad1Id,
-            id_pcpa_construccion: constId, // miembrosComision.value[0].id,
-            //cod_actividad: form.value.actividad1.id,  
-            desc_actividad: typeof(form.value.actividad1) === 'object' ? form.value.actividad1.name : form.value.actividad1, 
-            fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),      
-            estado: 'ACTIVO',
-           usu_cre: username,
-            fec_cre: new Date()
-        }
-        console.log('payload', payload);
-
-        const save = await ConvivenciaPacifica.createSocializacion(payload).then((res) => {
-            if(res.status === 201){
-                toast.info('Registro guardado correctamente', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                dialog.value = false;  
-                dialogSave.value = true; 
-                return res;
-            } else {
-                toast.error('Registro no guardado', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                return res;
-            }
-        });
-        console.log("save1", save);
-    }
-
-     if( typeof(form.value.actividad2) === 'object' ? form.value.actividad2 && form.value.actividad2.name.length : !(form.value.actividad2=== 'undefined') ){
-        var dateParts = (form.value.actividad2Fecha).split("/");
-           
-        const payload = {
-            id_pcpa_actividades_tipo: 12,//  form.value.actividad2Id,
-            id_pcpa_construccion: miembrosComision.value[0].id,
-           // cod_actividad: form.value.actividad2Id,  
-            desc_actividad: typeof(form.value.actividad2) === 'object' ? form.value.actividad2.name : form.value.actividad2, 
-            fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),             
-            estado: 'ACTIVO',
-           usu_cre: username,
-            fec_cre: new Date()
-        }
-        console.log('payload', payload);
-
-        const save = await ConvivenciaPacifica.createSocializacion(payload).then((res) => {
-            if(res.status === 201){
-                toast.info('Registro guardado correctamente', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                dialog.value = false;  
-                dialogSave.value = true; 
-                return res;
-            } else {
-                toast.error('Registro no guardado', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                return res;
-            }
-        });
-        console.log("save2", save);
-    }
-
-    if(    typeof(form.value.actividad3) === 'object' ? form.value.actividad3 && form.value.actividad3.name.length : !(form.value.actividad3=== 'undefined')   ){
-        var dateParts = (form.value.actividad3Fecha).split("/");
-           
-        const payload = {
-            id_pcpa_actividades_tipo: 13,//  form.value.actividad3Id,
-            id_pcpa_construccion: miembrosComision.value[0].id,
-           // cod_actividad: form.value.actividad3.id,  
-            desc_actividad: typeof(form.value.actividad3) === 'object' ? form.value.actividad3.name : form.value.actividad3, 
-            fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),         
-            estado: 'ACTIVO',
-           usu_cre: username,
-            fec_cre: new Date()
-        }
-        console.log('payload3', payload);
-
-        const save = await ConvivenciaPacifica.createSocializacion(payload).then((res) => {
-            if(res.status === 201){
-                toast.info('Registro guardado correctamente', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                dialog.value = false;  
-                dialogSave.value = true; 
-                return res;
-            } else {
-                toast.error('Registro no guardado', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                return res;
-            }
-        });
-        console.log("save3", save);
-    }
-
-    if(form.value.actividad4 && form.value.actividad4.name.length > 0   ){
-        var dateParts = (form.value.actividad4Fecha).split("/");
-           
-        const payload = {
-            id_pcpa_actividades_tipo: 14,//  form.value.actividad4Id,
-            id_pcpa_construccion: miembrosComision.value[0].id,
-           // cod_actividad: form.value.actividad4.id,  
-            desc_actividad:typeof(form.value.actividad4) === 'object' ? form.value.actividad4.name : form.value.actividad4, 
-            fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),      
-            estado: 'ACTIVO',
-           usu_cre: username,
-            fec_cre: new Date()
-        }
-        console.log('payload4', payload);
-
-        const save = await ConvivenciaPacifica.createSocializacion(payload).then((res) => {
-            if(res.status === 201){
-                toast.info('Registro guardado correctamente', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                dialog.value = false;  
-                dialogSave.value = true; 
-                return res;
-            } else {
-                toast.error('Registro no guardado', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                return res;
-            }
-        });
-        console.log("save4", save);
-    }
-
-    if(form.value.actividad5 && form.value.actividad5.name.length > 0   ){
-        var dateParts = (form.value.actividad5Fecha).split("/");
-           
-        const payload = {
-            id_pcpa_actividades_tipo: 15,// form.value.actividad5Id,
-            id_pcpa_construccion: miembrosComision.value[0].id,
-           // cod_actividad: form.value.actividad5.id,  
-            desc_actividad: typeof(form.value.actividad5) === 'object' ? form.value.actividad5.name : form.value.actividad5, 
-            fec_actividad:  new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(),          
-            estado: 'ACTIVO',
-           usu_cre: username,
-            fec_cre: new Date()
-        }
-        console.log('payload5', payload);
-
-        const save = await ConvivenciaPacifica.createSocializacion(payload).then((res) => {
-            if(res.status === 201){
-                toast.info('Registro guardado correctamente', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                dialog.value = false;  
-                dialogSave.value = true; 
-                return res;
-            } else {
-                toast.error('Registro no guardado', {
-                    autoClose: 3000,
-                    position: toast.POSITION.TOP_RIGHT,
-                });
-                return res;
-            }
-        });
-        console.log("save5", save);
-    }
-    
-  //  delete 
-    await Object.keys(actividadesEjecucion.value).map((item, key) => {
-        if( actividadesEjecucion.value[item].value){ 
-            console.log('actividadesEjecucion item, key: ', item, key);
-            if(!(actividadesEjecucion.value[item].id  === undefined ) ){ 
-              const delete3 =  ConvivenciaPacifica.deleteActividadesEjecutadas(actividadesEjecucion.value[item].id ).then((res) => {
-                if(res.status === 204){
-                    toast.info('Registro eliminado correctamente', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    dialog.value = false;  
-                    dialogSave.value = true; 
-                    return res;
-                } else {
-                    toast.error('Registro no eliminado', {
-                        autoClose: 3000,
-                        position: toast.POSITION.TOP_RIGHT,
-                    });
-                    return res;
-                }
-              });
-            }
-        }
-    });
-
-
-
-
-    dialog.value = false;  
-    dialogSave.value = true;   
+    if (actividad1 && !actividad1Fecha) validationErrors.value['actividad1'] = true;
+    if (actividad2 && !actividad2Fecha) validationErrors.value['actividad2'] = true;
+    if (actividad3 && !actividad3Fecha) validationErrors.value['actividad3'] = true;
+    if (actividad4 && !actividad4Fecha) validationErrors.value['actividad4'] = true;
+    if (actividad5 && !actividad5Fecha) validationErrors.value['actividad5'] = true;
+   
+    return Object.keys(validationErrors.value).length === 0;
 };
 
+// --- Función de Reseteo (sin cambios) ---
 const reset = () => {
     form.value.actividad1 = null;
     form.value.actividad2 = null;
@@ -738,9 +316,17 @@ const reset = () => {
     form.value.actividad3Fecha = '';
     form.value.actividad4Fecha = '';
     form.value.actividad5Fecha = '';
+    form.value.actividad1Id = null;
+    form.value.actividad2Id = null;
+    form.value.actividad3Id = null;
+    form.value.actividad4Id = null;
+    form.value.actividad5Id = null;
+    // También resetear comisiones
+    // ...
     dialogSave.value = false;
 };
 
+// --- Constantes (sin cambios) ---
 const actividadTipo = [
     { id: 1, name: '' },  
     { id: 2, name: 'MEDIOS DE COMUNICACIÓN INTERNA' },  
@@ -748,74 +334,245 @@ const actividadTipo = [
     { id: 4, name: 'TALLERES' },  
     { id: 5, name: 'FERIAS' },  
     { id: 6, name: 'OTROS' }
-]
-    
-  
-const validateForm = () => {
-    validationErrors.value = {};
+];
 
-    if (!form.value.actividad1 && !form.value.actividad2 && !form.value.actividad3 && !form.value.actividad4 && !form.value.actividad5) validationErrors.value['actividad'] = true;
-    else delete validationErrors.value['actividad'];
+// --- FUNCIONES AUXILIARES REFACTORIZADAS ---
 
-    if (form.value.actividad1 && !form.value.actividad1Fecha) validationErrors.value['actividad1'] = true;
-    else delete validationErrors.value['actividad1'];
-
-    if (form.value.actividad2 && !form.value.actividad2Fecha) validationErrors.value['actividad2'] = true;
-    else delete validationErrors.value['actividad2'];
-
-    if (form.value.actividad3 && !form.value.actividad3Fecha) validationErrors.value['actividad3'] = true;
-    else delete validationErrors.value['actividad3'];
-
-    if (form.value.actividad4 && !form.value.actividad4Fecha) validationErrors.value['actividad4'] = true;
-    else delete validationErrors.value['actividad4'];
-
-    if (form.value.actividad5 && !form.value.actividad5Fecha) validationErrors.value['actividad5'] = true;
-    else delete validationErrors.value['actividad5'];
-   
-    return !Object.keys(validationErrors.value).length;
+/**
+ * Convierte una fecha en formato DD/MM/YYYY a un string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+ */
+const parseDate = (dateString: string): string | null => {
+    if (!dateString || dateString.length !== 10) return null;
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null;
+    // parts[2] = YYYY, parts[1] = MM, parts[0] = DD
+    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toISOString();
 };
 
-// --- Función  para obtener id construcion
-const findConstByCiAndUe = async () => {  
-    form.value.idUE= idUE;
-     form.value.username= username;
-     const tecnico = await ConvivenciaPacifica.findConstByCiAndUe(form.value).then((res) => {
-        if (res.status === 200) {
-           // console.log('     res : ', res.data);    
-            existeCiAndCodSie.value = res.data|| [];  //  tecnico.data.data|| [];
-            if (existeCiAndCodSie.value.length === 1) {
+/**
+ * Sincroniza (Crea/Actualiza/Elimina) los miembros de una comisión.
+ */
+const syncComisionMiembros = async (miembros: any[], comisionTipoId: number, constId: number) => {
+    const promises: Promise<any>[] = [];
 
-              localStorage.setItem('idConst',res.data[0].id);
-                return res.data[0].id;  
-            }else{
-              localStorage.setItem('idConst','0');
-                  return 0;
-            }           
-            
-           
-        } else {
-            toast.error('No se encontro una UE para el Director', {
-                autoClose: 3500,
-                position: toast.POSITION.TOP_RIGHT
-            });
-           
-            return 0;
+    for (const [index, member] of miembros.entries()) {
+        const payload = {
+            id_pcpa_construccion: constId,
+            id_pcpa_comision_tipo: comisionTipoId,
+            id_pcpa_miembro_tipo: member.tipoId,
+            orden: index + 1,
+            nombres_miembro: member.value || '',
+            apellidos_miembro: '',
+            check_miembro_comision: member.status,
+           // estado: 'ACTIVO',
+           // usu_cre: username, // O usu_mod si es actualización
+           // fec_cre: new Date() // O fec_mod
+        };
+
+        if (member.status && member.value ) {
+            // Si tiene estado y valor, es una creación o actualización
+            if (member.id ) {  //   &&  !registroExiste
+                                
+               // Actualizar miembros socializacion   
+                  payload.estado= 'MODIFICADO',             
+                 payload.usu_mod = username;
+                 payload.fec_mod = new Date();
+                 promises.push(ConvivenciaPacifica.updateMiembroComision(member.id, payload));
+                
+                 // el codigo comentado a continuacion no es necesario
+                // --- INICIO: Solución provisional si NO HAY UPDATE (Eliminar y Crear) ---
+                // 1. Eliminar si existe
+                //if(member.id) promises.push(ConvivenciaPacifica.deleteMiembroComision(member.id));
+                // 2. Crear
+               // promises.push(ConvivenciaPacifica.createMiembroComision(payload));
+                // --- FIN: Solución provisional ---
+
+            } else if (!member.id  ) {
+
+                // Crear miembros socializacion
+                   payload.estado= 'ACTIVO',
+                payload.usu_cre = username;
+                 payload.fec_cre = new Date();
+                promises.push(ConvivenciaPacifica.createMiembroComision(payload));
+            }
+        } else if (!member.status && member.id) {
+            // el codigo comentado a continuacion no es necesario
+            // Si no tiene estado pero sí ID, es una eliminación
+          //  promises.push(ConvivenciaPacifica.deleteMiembroComision(member.id));
         }
-    }).catch(() => {
-        toast.error('Error de conexión con el servidor.', {
-            autoClose: 3500,
-            position: toast.POSITION.TOP_RIGHT
-        });
-    });    
-    
-    return tecnico; 
+    }
+    return Promise.all(promises);
 };
 
+/**
+ * Sincroniza (Crea/Actualiza/Elimina) las actividades.
+ */
+const syncActividades = async (activities: any[], constId: number) => {
+    const promises: Promise<any>[] = [];
 
+    for (const activity of activities) {
+        const fechaISO = parseDate(activity.fecha);
+        
+        const payload = {
+            id_pcpa_actividades_tipo: activity.tipoId,
+            id_pcpa_construccion: constId,
+            desc_actividad: (activity.value && typeof activity.value === 'object')  ? activity.value.name : activity.value ,//activity.value != null ? activity.value : '', //  name
+            fec_actividad: fechaISO,
+           // usu_cre: username,
+           // fec_cre: new Date()
+        };
 
+        if (activity.value && fechaISO) {
+            // Si tiene valor y fecha, es actualización
+            if (activity.id  ) { //  &&  !registroExiste
+                // Actualizar actividad
+                 payload.estado= 'MODIFICADO',
+                 payload.usu_mod = username;
+                 payload.fec_mod = new Date();
+                 promises.push(ConvivenciaPacifica.updateSocializacion(activity.id, payload));
+                
+                 // el codigo comentado a continuacion no es necesario
+                // --- INICIO: Solución provisional si NO HAY UPDATE (Eliminar y Crear) ---
+             //   if(activity.id) promises.push(ConvivenciaPacifica.deleteActividadesEjecutadas(activity.id));
+             //   promises.push(ConvivenciaPacifica.createSocializacion(payload));
+                // --- FIN: Solución provisional ---
+
+            } else if (!activity.id  ) {
+                // Crear actividad            
+            //  payload.desc_actividad= activity.value != null ? activity.value.name : '', //  
+                payload.estado= 'ACTIVO',
+                 payload.usu_cre = username;
+                 payload.fec_cre = new Date();
+                promises.push(ConvivenciaPacifica.createSocializacion(payload));
+            }
+        } else if (!activity.value && activity.id) {
+            // el codigo comentado a continuacion no es necesario
+            // Si no tiene valor pero sí ID, es eliminación
+           // promises.push(ConvivenciaPacifica.deleteActividadesEjecutadas(activity.id));
+        }
+    }
+    return Promise.all(promises);
+};
+
+// --- FUNCIONES PRINCIPALES DE GUARDADO (create / update) ---
+
+/**
+ * Prepara los datos del formulario para ser enviados.
+ */
+const getDatosFormulario = () => {
+    const socializacionMiembros = [
+        { tipoId: 1, status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
+        { tipoId: 2, status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId },
+        { tipoId: 3, status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId },
+        { tipoId: 4, status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId },
+        { tipoId: 5, status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId }
+    ];
+
+    const implementacionMiembros = [
+        { tipoId: 1, status: form.value.comisionImplementacionEstudiante, value: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId },
+        { tipoId: 2, status: form.value.comisionImplementacionDirector, value: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId },
+        { tipoId: 3, status: form.value.comisionImplementacionMaestro, value: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId },
+        { tipoId: 4, status: form.value.comisionImplementacionPadre, value: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId },
+        { tipoId: 5, status: form.value.comisionImplementacionOtro, value: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId }
+    ];
+
+    const activities = [
+        { tipoId: 11, value: form.value.actividad1, fecha: form.value.actividad1Fecha, id: form.value.actividad1Id },
+        { tipoId: 12, value: form.value.actividad2, fecha: form.value.actividad2Fecha, id: form.value.actividad2Id },
+        { tipoId: 13, value: form.value.actividad3, fecha: form.value.actividad3Fecha, id: form.value.actividad3Id },
+        { tipoId: 14, value: form.value.actividad4, fecha: form.value.actividad4Fecha, id: form.value.actividad4Id },
+        { tipoId: 15, value: form.value.actividad5, fecha: form.value.actividad5Fecha, id: form.value.actividad5Id }
+    ];
+    
+    return { socializacionMiembros, implementacionMiembros, activities };
+};
+
+/**
+ * Función `registro` actualizada que dirige a create o update.
+ */
+const registro = async () => {
+    console.log(`Iniciando guardado (Existe: ${registroExiste.value})`);
+    
+    if (!validateForm()) {
+        dialog.value = false;
+        toast.info('Debe ingresar los datos requeridos', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        return;
+    }
+
+    isLoading.value = true;
+    isFormDisabled.value = true;
+
+    try {
+        const constId = await findConstByCiAndUe();
+        if (!constId) {
+            throw new Error('No se pudo encontrar el ID de construcción para la UE.');
+        }
+
+        const { socializacionMiembros, implementacionMiembros, activities } = getDatosFormulario();
+
+        // Ejecutar todas las sincronizaciones en paralelo
+        await Promise.all([
+            syncComisionMiembros(socializacionMiembros, 3, constId), // 3 = Socialización
+            syncComisionMiembros(implementacionMiembros, 4, constId), // 4 = Implementación
+            syncActividades(activities, constId)
+        ]);
+
+        // Éxito
+        toast.success('Registros guardados correctamente', {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+        dialog.value = false;
+        dialogSave.value = true;
+        registroExiste.value = true; // El registro ahora existe (o sigue existiendo)
+
+        // Recargar datos para obtener nuevos IDs y estados
+        await findMiembroComision();
+        await findActividadesEjecutadas();
+
+    } catch (error: any) {
+        console.error("Error al guardar:", error);
+        toast.error(`Error al guardar: ${error.message || 'Error desconocido'}`, {
+            autoClose: 3000,
+            position: toast.POSITION.TOP_RIGHT,
+        });
+    } finally {
+        isLoading.value = false;
+    }
+};
+
+// --- Función findConstByCiAndUe (Mejorada) ---
+const findConstByCiAndUe = async (): Promise<number | null> => {
+    form.value.idUE = idUE;
+    form.value.username = username;
+    
+    try {
+        const res = await ConvivenciaPacifica.findConstByCiAndUe(form.value);
+        if (res.status === 200 && res.data && res.data.length > 0) {
+            const existeCiAndCodSie = res.data;
+            if (existeCiAndCodSie.length === 1) {
+                localStorage.setItem('idConst', existeCiAndCodSie[0].id);
+                return existeCiAndCodSie[0].id;
+            } else {
+                localStorage.setItem('idConst', '0');
+                toast.warn('Se encontraron múltiples o ninguna construcción para esta UE.', { autoClose: 3500 });
+                return null;
+            }
+        } else {
+            toast.error('No se encontró una UE para el Director', { autoClose: 3500 });
+            return null;
+        }
+    } catch (error) {
+        console.error("Error en findConstByCiAndUe:", error);
+        toast.error('Error de conexión al buscar ID de construcción.', { autoClose: 3500 });
+        return null;
+    }
+};
 
 </script>
-
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -864,7 +621,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionEstudiante || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -872,7 +629,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionDirector || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -880,7 +637,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionMaestro || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -888,7 +645,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionPadre || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -896,7 +653,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionSocializacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionSocializacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionSocializacionOtro || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -914,7 +671,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionEstudianteNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionImplementacionEstudiante || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -922,7 +679,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionDirectorNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionImplementacionDirector || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -930,7 +687,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionMaestroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionImplementacionMaestro || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -938,7 +695,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionPadreNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionImplementacionPadre || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -946,7 +703,7 @@ const findConstByCiAndUe = async () => {
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.comisionImplementacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="isFormDisabledFromNew" ></v-text-field>
+                                <v-text-field v-model="form.comisionImplementacionOtroNombre" :counter="10" label="Nombre" hide-details :disabled="!form.comisionImplementacionOtro || isFormDisabledFromNew" ></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12">                                
@@ -1028,7 +785,7 @@ const findConstByCiAndUe = async () => {
                                         <v-card-actions>
                                             <v-spacer></v-spacer>
                                             <v-btn color="green-darken-1" variant="text" @click="dialog = false"> Cancelar </v-btn>
-                                            <v-btn color="green-darken-1" variant="text" @click="save"> Aceptar </v-btn>
+                                            <v-btn color="green-darken-1" variant="text" @click="registro"> Aceptar </v-btn>
                                         </v-card-actions>
                                     </v-card>
                                 </v-dialog>
@@ -1041,16 +798,14 @@ const findConstByCiAndUe = async () => {
         </v-col>
     </v-row>
                                 
-    <v-dialog v-model="dialogSave" persistent width="auto" >
+    <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
-            <v-card-title class="text-h5">
-            Mensaje
-            </v-card-title>
-            <v-card-text>¿ Nuevo registro ? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
+            <v-card-title class="text-h5">Mensaje</v-card-title>
+            <v-card-text>Registro guardado. ¿Ingresar uno nuevo o modificar el actual?</v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica')"> NO </v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset"> SI </v-btn>
+                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">MODIFICAR REGISTRO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="reset">NUEVO REGISTRO</v-btn>
             </v-card-actions>
         </v-card>
     </v-dialog>

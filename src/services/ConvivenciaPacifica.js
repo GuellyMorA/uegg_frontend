@@ -47,7 +47,7 @@ class ConvivenciaPacificaService {
     });
   }
 
-  deleteConstruccion(id){
+  deleteConstruccionxxx(id){
     return http.put(`/ueggPcpaConstruccionDel/${id}`).catch((error) => {
         return error;
     });
@@ -104,7 +104,7 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
-  listMiembroComision(data){
+  listMiembrosComision(data){
     return http.get(`/listMiembrosComision/${data}`).catch((error) => {
         return error;
     });
@@ -214,6 +214,27 @@ class ConvivenciaPacificaService {
         return error;
     });
   }
+ updateSocializacion(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaActividadesEjecutadas/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data    
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaActividadesEjecutadas  url  : ", error.config.url,data);
+
+        return error;
+    });
+
+  }
+
+
+
 
   createSeguimiento(data){
     return http.post(`/ueggPcpaIndicadoresEjecucion`, data).catch((error) => {

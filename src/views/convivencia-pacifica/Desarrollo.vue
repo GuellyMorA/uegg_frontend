@@ -370,7 +370,7 @@ const copiaNoReactiva = new Map(jsonMap);
   for (const jsonItem of copiaNoReactiva.keys()) {
     // Regla 3: Solo existe en el JSON  desde la pantalla 
         const nuevoRegistro = obtenerKeyOriginal(jsonDatos, jsonItem);
-   console.error( 'nuevoRegistro :', nuevoRegistro);
+   //console.error( 'nuevoRegistro :', nuevoRegistro);
       resultado.push({
       id_actividades_promocion: 'null', // Nulo según tu ejemplo de regla 3
       check_actividad_tipo: 'null', // Nulo según tu ejemplo de regla 3
@@ -463,7 +463,7 @@ console.log("--- INICIO DE PROCESO DE MAPEO Y COMPARACIÓN ---");
         }
         
         //console.error(`❌ labelsFuenteMap : "${labelsFuenteMap.get(labelUpperDataArray)}" buscada. El elemento NO será MODIFICADO.`);
-        console.error(`❌ DataArray SIN COINCIDENCIA : "${labelUpperDataArray}" NO se encontró. Se mantiene el estado: ${item.estado}, ${item.id_pcpa_actividades_tipo} `);
+       //rbc console.error(`❌ DataArray SIN COINCIDENCIA : "${labelUpperDataArray}" NO se encontró. Se mantiene el estado: ${item.estado}, ${item.id_pcpa_actividades_tipo} `);
         return item;
     });
 
@@ -773,7 +773,7 @@ const update = async () => {
     const dateParts2 = (form.value.fecha || '').split("/"); 
 
     const payload2 = {
-        id_pcpa_unidad_educativa: idUE,
+       // id_pcpa_unidad_educativa: idUE,
         fecha_registro: new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString(), 
         check_diagnostico_pcpa: form.value.registroAnterior,
         fecha_aprobacion: new Date(dateParts2[2] +'-'+ dateParts2[1] +'-'+ dateParts2[0]).toISOString(),
