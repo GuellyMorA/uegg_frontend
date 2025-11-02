@@ -202,13 +202,6 @@ class ConvivenciaPacificaService {
   }
 
 
-  
-  getIndicadorTipo(){
-    return http.get(`/ueggPcpaIndicadoresTipo`).catch((error) => {
-        return error;
-    });
-  }
-
   createSocializacion(data){
     return http.post(`/ueggPcpaActividadesEjecutadas`, data).catch((error) => {
         return error;
@@ -234,15 +227,70 @@ class ConvivenciaPacificaService {
   }
 
 
-
-
   createSeguimiento(data){
     return http.post(`/ueggPcpaIndicadoresEjecucion`, data).catch((error) => {
         return error;
     });
   }
+  updateSeguimiento(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaIndicadoresEjecucion/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data    
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaIndicadoresEjecucion  url  : ", error.config.url,data);
 
-  
+        return error;
+    });
+
+  }
+
+    createAccionesEjecucion(data){
+    return http.post(`/ueggPcpaAccionesEjecucion`, data).catch((error) => {
+        return error;
+    });
+  }
+  updateAccionesEjecucion(id,data) {
+    return http2({
+      method:'put',
+      url: `/ueggPcpaAccionesEjecucion/${id}`,
+     // baseURL: apiUrl.VITE_API_URL_UEGG_AUTH,
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': apiUrl.VITE_API_URL_TOKEN
+      },      
+    data:data    
+    })
+    .catch((error) => {
+      console.log("error ueggPcpaAccionesEjecucion  url  : ", error.config.url,data);
+
+        return error;
+    });
+  }
+    findAccionesEjecucion(data){
+     return  http.get(`/ueggPcpaAccionesEjecucionList/${data}`,).catch((error) => {
+         return error;
+     });
+ 
+   }
+    findIndicadoresEjecucion(data){
+     return  http.get(`/ueggPcpaIndicadoresEjecucionList/${data}`,).catch((error) => {
+         return error;
+     });
+ 
+   }
+  getIndicadorTipo(){
+    return http.get(`/ueggPcpaIndicadoresTipo`).catch((error) => {
+        return error;
+    });
+  }
+
 
 
   findInstitucionEducativa(id){

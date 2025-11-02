@@ -13,7 +13,7 @@ const dialog = ref(false);
 const dialogSave = ref(false);
 const validationErrors = ref<Record<string, boolean>>({});
 const find = ref(false);
-const variusSie = ref(false);
+const existeCiAndCodSie= ref<any | null>(null); 
 
 const institucionEducativa = ref();
 const miembrosComision = ref();
@@ -26,7 +26,8 @@ const sieRules = [
     (value: any) => (value?.length === 8) || 'El código SIE requiere 8 dígitos.',
 ];
 
-let username: string | null;
+let username: string | null; // localStorage.getItem('username') || '';
+
 const form: any = ref({
     sie: null,
     unidadEducativa: '',
@@ -85,13 +86,13 @@ const form: any = ref({
    
 const readOnlyVar = ref(localStorage.getItem('existeMiembro') === 'true');
 // registroExiste se actualice automáticamente cuando cambie readOnlyVar, usa un computed en lugar de otro ref:
-const registroExiste = computed(() => readOnlyVar.value);
+const registroExiste =  ref(readOnlyVar.value) ;//computed(() => readOnlyVar.value);
 console.log('existeEnBD-readOnlyVar:', readOnlyVar.value);
 
 const isLoading = ref(true);
-const dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
-const idUE = dataUE[0].id;
-
+let dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
+let idUE = dataUE[0].id;
+console.log('idUE:', idUE);
 const isFormDisabled = ref(true);
 const isFormDisabledFromNew = ref(true);
 
@@ -101,7 +102,7 @@ const iniciarNuevoRegistro = () => {
     console.log('Ingresar nuevo registro clickeado.');
     isFormDisabled.value = false;
     isFormDisabledFromNew.value = false;
-  //  registroExiste.value = false; // Importante: marcar que es un nuevo registro
+
     // Aquí también deberías limpiar el formulario (reset)
   //RBC  reset(); 
 };
@@ -109,12 +110,15 @@ const iniciarNuevoRegistro = () => {
 const modificarRegistro = () => {
     console.log('modificar registro .');
     isFormDisabled.value = false;
-  //  registroExiste.value = true; // Importante: marcar que es una modificación
+
 };
 
 // --- Funciones de Carga de Datos (onMounted, finders...) (Con leves mejoras) ---
 
 onMounted(async () => {
+    await findUeByCiAndCodSie();
+    await findConstByCiAndUe();
+
     let user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user && user.codigo_sie) {
         form.value.sie = user.codigo_sie;
@@ -137,6 +141,8 @@ onMounted(async () => {
         isLoading.value = false;
         // Manejar caso donde no hay usuario o SIE
     }
+
+
 });
 
 const findUnidadesEducativasPorDirector = async () => {
@@ -371,7 +377,7 @@ const syncComisionMiembros = async (miembros: any[], comisionTipoId: number, con
 
         if (member.status && member.value ) {
             // Si tiene estado y valor, es una creación o actualización
-            if (member.id ) {  //   &&  !registroExiste
+            if (member.id ) {  
                                 
                // Actualizar miembros socializacion   
                   payload.estado= 'MODIFICADO',             
@@ -424,7 +430,7 @@ const syncActividades = async (activities: any[], constId: number) => {
 
         if (activity.value && fechaISO) {
             // Si tiene valor y fecha, es actualización
-            if (activity.id  ) { //  &&  !registroExiste
+            if (activity.id  ) { 
                 // Actualizar actividad
                  payload.estado= 'MODIFICADO',
                  payload.usu_mod = username;
@@ -543,11 +549,50 @@ const registro = async () => {
         isLoading.value = false;
     }
 };
+// --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
+const findUeByCiAndCodSie = async () => {
+  try {
+    form.value.codSie = localStorage.getItem('codigo_sie') || '';
+    form.value.username = localStorage.getItem('username') || '';
+    const res = await ConvivenciaPacifica.findUeByCiAndCodSie(form.value);
+    console.log('Respuesta de findUeByCiAndCodSie →', res);
+
+    if (res.status === 200) {
+      existeCiAndCodSie.value = res.data || [];
+
+      if (existeCiAndCodSie.value.length >= 1) {
+        localStorage.setItem('existeEnBD', 'true');
+        localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+         dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
+         idUE = dataUE[0].id;
+      } else {
+        localStorage.setItem('existeEnBD', 'false');
+        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+      }
+
+      return true;
+    } else {
+      toast.error('No se encontró una UE para el Director', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      });
+      return false;
+    }
+
+  } catch (error) {
+    console.error('❌ Error en findUeByCiAndCodSie:', error);
+    toast.error('Error de conexión con el servidor.', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+    });
+    return false;
+  }
+};
 
 // --- Función findConstByCiAndUe (Mejorada) ---
 const findConstByCiAndUe = async (): Promise<number | null> => {
     form.value.idUE = idUE;
-    form.value.username = username;
+  //  form.value.username = username;
     
     try {
         const res = await ConvivenciaPacifica.findConstByCiAndUe(form.value);

@@ -518,6 +518,43 @@ console.log("--- INICIO DE PROCESO DE MAPEO Y COMPARACIÓN ---");
 
 
 // --- DATOS DE ENTRADA ---
+// --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
+const findUeByCiAndCodSie = async () => {
+  try {
+    form.value.codSie = localStorage.getItem('codigo_sie') || '';
+
+    const res = await ConvivenciaPacifica.findUeByCiAndCodSie(form.value);
+    console.log('Respuesta de findUeByCiAndCodSie →', res);
+
+    if (res.status === 200) {
+      existeCiAndCodSie.value = res.data || [];
+
+      if (existeCiAndCodSie.value.length >= 1) {
+        localStorage.setItem('existeEnBD', 'true');
+        localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+      } else {
+        localStorage.setItem('existeEnBD', 'false');
+        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+      }
+
+      return true;
+    } else {
+      toast.error('No se encontró una UE para el Director', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      });
+      return false;
+    }
+
+  } catch (error) {
+    console.error('❌ Error en findUeByCiAndCodSie:', error);
+    toast.error('Error de conexión con el servidor.', {
+      autoClose: 3000,
+      position: toast.POSITION.TOP_RIGHT,
+    });
+    return false;
+  }
+};
 
 /**
  * Función principal que recibe el array y procesa las peticiones.
@@ -628,6 +665,8 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
                                 autoClose: 3500,
                                 position: toast.POSITION.TOP_RIGHT, 
                             });
+     
+
                         } else {
                             toast.error(`Registro ${idParaActualizar} no modificado (Status: ${res.status})`, { 
                                 autoClose: 3500,
@@ -965,8 +1004,9 @@ const createRec = async () => {
         fec_cre: new Date()
     }
        //  ueggPcpaConstruccion
-    const save2 = await ConvivenciaPacifica.createContruccion(payload2).then((res) => {
+    const save2 = await ConvivenciaPacifica.createContruccion(payload2).then(async (res) => {
         if(res.status === 201){
+   
 
               toast.info(`Registro id UE ${save1.data.id} guardado correctamente`, {   
                 autoClose: 3500,

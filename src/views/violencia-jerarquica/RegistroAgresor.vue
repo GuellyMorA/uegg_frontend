@@ -492,16 +492,16 @@ const searchCaso = async () => {
                         <v-row>
                                                         <v-col cols="12" md="12">
                                 <v-text-field 
-                                    v-model="formSearch.codigoRda" 
-                                    density="compact" 
-                                    variant="solo" 
-                                    label="Código RDA" 
-                                    append-inner-icon="mdi-magnify" 
-                                    single-line 
-                                    hide-details 
-                                    @click:append-inner="searchVictimaCodigoRda"
-                                    :disabled="isFormDisabled"
-                                ></v-text-field>
+ v-model="formSearch.codigoRda" 
+ density="compact" 
+ variant="solo" 
+ label="Código RDA" 
+ append-inner-icon="mdi-magnify" 
+ single-line 
+ hide-details 
+ @click:append-inner="searchVictimaCodigoRda"
+:disabled="isFormDisabled"
+></v-text-field>
                             </v-col>
                                                     </v-row>
                         </v-container>
