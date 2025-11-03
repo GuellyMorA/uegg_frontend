@@ -290,7 +290,11 @@ class ConvivenciaPacificaService {
         return error;
     });
   }
-
+  getActividadTipo(){
+    return http.get(`/ueggPcpaActividadesTipo`).catch((error) => {
+        return error;
+    });
+  }
 
 
   findInstitucionEducativa(id){

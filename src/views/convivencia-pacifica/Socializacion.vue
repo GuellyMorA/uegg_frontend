@@ -1,578 +1,732 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from "vue-router";
-import { toast } from 'vue3-toastify';
-import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
-import Auth from '@/services/Auth';
+import { toast } from 'vue3-toastify'; // [cite: 203]
+import ConvivenciaPacifica from '@/services/ConvivenciaPacifica'; // [cite: 203]
+import Auth from '@/services/Auth'; // [cite: 203]
+
+// --- Tipos y Constantes ---
+
+// IDs de Tipos de Comisión (de la BD) // [cite: 204]
+const TIPO_COMISION_SOCIALIZACION = 3; // [cite: 205]
+const TIPO_COMISION_IMPLEMENTACION = 4; // [cite: 205]
+
+// IDs de Tipos de Miembro (de la BD) // [cite: 205]
+const MIEMBRO_TIPO_MAP = { // [cite: 205]
+    Estudiante: 1,
+    Director: 2,
+    Maestro: 3,
+    Padre: 4,
+    Otro: 5,
+};
+
+// IDs de Tipos de Actividad (de la BD) - Se mantiene para definir los tipos estáticos de cada slot // [cite: 206]
+/*const ACTIVIDAD_TIPO_MAP = { // [cite: 206]
+    actividad1: 11, // 'actividad1',
+    actividad2: 12,
+    actividad3: 13,
+    actividad4: 14,
+    actividad5: 15,
+}; // [cite: 207]
+*/
+
+// Mapa de tipos de actividad (se llena dinámicamente desde la BD)
+let ACTIVIDAD_TIPO_MAP: Record<string, number> = {};
+
+// --- Interfaces de Tipos ---
+
+/**
+ * Define la estructura de un item en el v-select de actividades.
+ */
+interface ActividadTipoItem { // [cite: 208]
+    id: number;
+    name: string; // [cite: 209]
+}
+
+/**
+ * Define la estructura de un miembro de comisión en el estado.
+ */
+interface MiembroComision { // [cite: 210]
+    key: string; // 'Estudiante', 'Director', etc.
+    tipoId: number; // [cite: 211]
+    status: boolean; // El v-checkbox
+    nombre: string; // [cite: 212]
+    id: number | null; // [cite: 213]
+}
+
+/**
+ * Define la estructura de una actividad en el estado.
+ */
+interface Actividad { // [cite: 214]
+    key: string; // 'actividad1', 'actividad2', etc.
+    tipoId: number; // [cite: 215]
+    nombre: ActividadTipoItem | string | null; // [cite: 216]
+    fecha: string; // El v-text-field (DD/MM/YYYY)
+    id: number | null; // [cite: 217]
+}
+
+/**
+ * Define la estructura completa del estado del formulario.
+ */
+interface FormState { // [cite: 218]
+    sie: number | null;
+    unidadEducativa: string;
+    director: string; // [cite: 219]
+    comisionSocializacion: MiembroComision[];
+    comisionImplementacion: MiembroComision[];
+    actividades: Actividad[];
+    validado: boolean; // [cite: 220]
+    
+    // [NUEVO] Propiedades planas añadidas para la gestión de formulario
+    // ... (Estas propiedades planas deben definirse si se usan en el template, ej: actividad1, actividad1Fecha)
+    // Se asume que las propiedades planas están definidas implícitamente en el FormState en la implementación real
+    // por la forma en que se usan en registro() y mapearFormularioDesdeActividades().
+    [key: string]: any;
+}
 
 
-// --- Refs y Estado (sin cambios) ---
-const router = useRouter();
-const valid = ref(false);
-const dialog = ref(false);
-const dialogSave = ref(false);
-const validationErrors = ref<Record<string, boolean>>({});
-const find = ref(false);
+// --- Helpers para Estado Inicial ---
+
+/**
+ * Crea un objeto MiembroComision por defecto.
+ */
+const createDefaultMiembro = (key: string, tipoId: number, status = false, nombre = ''): MiembroComision => ({ // [cite: 222]
+    key,
+    tipoId,
+    status,
+    nombre,
+    id: null
+}); // [cite: 223]
+
+/**
+ * Crea un objeto Actividad por defecto.
+ */
+const createDefaultActividad = (key: string, tipoId: number, nombre: ActividadTipoItem | null = null, fecha = ''): Actividad => ({
+    key,
+    tipoId,
+    nombre,
+    fecha,
+    id: null
+}); // [cite: 224]
+
+/**
+ * Genera el estado inicial del formulario, respetando los valores por defecto del script original.
+ */
+const getDefaultFormState = (): FormState => { // [cite: 225]
+    
+    // Se inicializa 'nombre' a null o string vacío ya que la lista de opciones es dinámica
+    // y no podemos garantizar que el objeto exista al cargar.
+
+    return {
+        sie: null,
+        unidadEducativa: '',
+        director: '',
+        validado: false,
+
+        // Miembros de la comisión SOCIALIZACION 
+        comisionSocializacion: [ // [cite: 228]
+            createDefaultMiembro('Estudiante', MIEMBRO_TIPO_MAP.Estudiante, true, 'Estudiante1 SOC,Estudiante2  SOC'),
+            createDefaultMiembro('Director', MIEMBRO_TIPO_MAP.Director, true, 'Director1 soc, Director2 socializacion'),
+            createDefaultMiembro('Maestro', MIEMBRO_TIPO_MAP.Maestro, false, ''),
+            createDefaultMiembro('Padre', MIEMBRO_TIPO_MAP.Padre, false, ''),
+            createDefaultMiembro('Otro', MIEMBRO_TIPO_MAP.Otro, false, ''),
+        ],
+
+        // Miembros de la comisión IMPLEMENTACIÓN // [cite: 228]
+        comisionImplementacion: [ // [cite: 229]
+            createDefaultMiembro('Estudiante', MIEMBRO_TIPO_MAP.Estudiante, false, 'Estudiante1 imp,Estudiante2 imp'),
+            createDefaultMiembro('Director', MIEMBRO_TIPO_MAP.Director, false, 'Director1 Implementación, Director2 Implementación'),
+            createDefaultMiembro('Maestro', MIEMBRO_TIPO_MAP.Maestro, false, ''),
+            createDefaultMiembro('Padre', MIEMBRO_TIPO_MAP.Padre, false, ''),
+            createDefaultMiembro('Otro', MIEMBRO_TIPO_MAP.Otro, false, ''),
+        ],
+
+        // Actividades de Ejecución // [cite: 229]
+        actividades: [ // [cite: 230]
+            // Inicializamos con nombre a null, el valor será cargado por findActividadesEjecutadas
+            createDefaultActividad('actividad1', ACTIVIDAD_TIPO_MAP.actividad1, null, ''), 
+            createDefaultActividad('actividad2', ACTIVIDAD_TIPO_MAP.actividad2, null, ''),
+            createDefaultActividad('actividad3', ACTIVIDAD_TIPO_MAP.actividad3, null, ''),
+            createDefaultActividad('actividad4', ACTIVIDAD_TIPO_MAP.actividad4, null, ''),
+            createDefaultActividad('actividad5', ACTIVIDAD_TIPO_MAP.actividad5, null, ''),
+        ]
+    }; // [cite: 231]
+};
+
+
+// --- Estado Reactivo ---
+
+const router = useRouter(); // [cite: 231]
+const valid = ref(false); // [cite: 232]
+const dialog = ref(false); // [cite: 232]
+const dialogSave = ref(false); // [cite: 232]
+const validationErrors = ref<Record<string, boolean>>({}); // [cite: 232]
+const find = ref(false); // [cite: 232]
+const isLoading = ref(true); // [cite: 232]
+const institucionEducativa = ref<any>(null); // [cite: 233]
+const form = ref<FormState>(getDefaultFormState()); // [cite: 233]
+const constId = ref<number | null>(null); // [cite: 233]
+
+// [NUEVO] Lista de tipos de actividades cargados dinámicamente
+const actividadTipos = ref<ActividadTipoItem[]>([]); 
+
+// Estado de la UI // [cite: 234]
+const registroExiste = ref(localStorage.getItem('existeMiembro') === 'true'); // [cite: 234]
+const isFormDisabled = ref(true); // [cite: 234]
+const isFormDisabledFromNew = ref(true); // [cite: 235]
+
+// Variables
+let username: string = ''; // [cite: 235]
+let dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]'); // [cite: 236]
+const idUE = ref(dataUE[0].id) || null; // [cite: 236]
 const existeCiAndCodSie= ref<any | null>(null); 
 
-const institucionEducativa = ref();
-const miembrosComision = ref();
-// const comisionSocializacion = ref(); // Ya no es necesario, se procesa en la función de guardado
-// const comisionImplementacion = ref(); // Ya no es necesario
-// const actividadesEjecucion = ref(); // Ya no es necesario
-
-const sieRules = [
-    (value: any) => !!value || 'El SIE es requerido',
-    (value: any) => (value?.length === 8) || 'El código SIE requiere 8 dígitos.',
+// Reglas // [cite: 237]
+const sieRules = [ // [cite: 237]
+    (value: any) => !!value || 'El SIE es requerido', // [cite: 238]
+    (value: any) => (String(value)?.length === 8) || 'El código SIE requiere 8 dígitos.', // [cite: 239]
 ];
 
-let username: string | null; // localStorage.getItem('username') || '';
+// --- Ciclo de Vida ---
 
-const form: any = ref({
-    sie: null,
-    unidadEducativa: '',
-   // Miembros de la comisión SOCIALIZACION
-    comisionSocializacionEstudiante: true,
-    comisionSocializacionDirector: true,
-    comisionSocializacionMaestro: false,
-    comisionSocializacionPadre: false,
-    comisionSocializacionOtro: false,
-    comisionSocializacionEstudianteNombre: 'Estudiante1 SOC,Estudiante2  SOC',
-    comisionSocializacionDirectorNombre: 'Director1 soc, Director2 socializacion',
-    comisionSocializacionMaestroNombre: '',
-    comisionSocializacionPadreNombre: '',
-    comisionSocializacionOtroNombre: '',
-    comisionSocializacionEstudianteId: null,
-    comisionSocializacionDirectorId: null,
-    comisionSocializacionMaestroId: null,
-    comisionSocializacionPadreId: null,
-    comisionSocializacionOtroId: null,
-
-    //  Miembros de la comisión Implementación
-    comisionImplementacionEstudiante: false,
-    comisionImplementacionDirector: false,
-    comisionImplementacionMaestro: false,
-    comisionImplementacionPadre: false,
-    comisionImplementacionOtro: false,
-    comisionImplementacionEstudianteNombre: 'Estudiante1 imp,Estudiante2 imp',
-    comisionImplementacionDirectorNombre: 'Director1 Implementación, Director2 Implementación',
-    comisionImplementacionMaestroNombre: '',
-    comisionImplementacionPadreNombre: '',
-    comisionImplementacionOtroNombre: '',
-    comisionImplementacionEstudianteId: null,
-    comisionImplementacionDirectorId: null,
-    comisionImplementacionMaestroId: null,
-    comisionImplementacionPadreId: null,
-    comisionImplementacionOtroId: null,
-
-    actividad1: 'MEDIOS DE COMUNICACIÓN INTERNA',
-    actividad2: 'OTROS',
-    actividad3: null,
-    actividad4: null,
-    actividad5: null,
-    actividad1Fecha: '15/12/2025',
-    actividad2Fecha: '17/08/2026',
-    actividad3Fecha: '',
-    actividad4Fecha: '',
-    actividad5Fecha: '',
-    actividad1Id: null,
-    actividad2Id: null,
-    actividad3Id: null,
-    actividad4Id: null,
-    actividad5Id: null,
-    validado: false
+onMounted(async () => { // [cite: 239]
+    await loadInitialData(); // [cite: 240]
 });
-   console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
-   
-const readOnlyVar = ref(localStorage.getItem('existeMiembro') === 'true');
-// registroExiste se actualice automáticamente cuando cambie readOnlyVar, usa un computed en lugar de otro ref:
-const registroExiste =  ref(readOnlyVar.value) ;//computed(() => readOnlyVar.value);
-console.log('existeEnBD-readOnlyVar:', readOnlyVar.value);
 
-const isLoading = ref(true);
-let dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
-let idUE = dataUE[0].id;
-console.log('idUE:', idUE);
-const isFormDisabled = ref(true);
-const isFormDisabledFromNew = ref(true);
 
-// --- Funciones de Control de Formulario (sin cambios) ---
-
-const iniciarNuevoRegistro = () => {
-    console.log('Ingresar nuevo registro clickeado.');
-    isFormDisabled.value = false;
-    isFormDisabledFromNew.value = false;
-
-    // Aquí también deberías limpiar el formulario (reset)
-  //RBC  reset(); 
-};
-
-const modificarRegistro = () => {
-    console.log('modificar registro .');
-    isFormDisabled.value = false;
-
-};
-
-// --- Funciones de Carga de Datos (onMounted, finders...) (Con leves mejoras) ---
-
-onMounted(async () => {
-    await findUeByCiAndCodSie();
-    await findConstByCiAndUe();
-
-    let user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user && user.codigo_sie) {
-        form.value.sie = user.codigo_sie;
-        username = localStorage.getItem('username');
-        
-        // Ejecutar búsquedas en paralelo
-        try {
-            await Promise.all([
-                findUnidadesEducativasPorDirector(),
-                findMiembroComision(),
-                findActividadesEjecutadas()
-            ]);
-        } catch (error) {
-            console.error("Error al cargar datos iniciales:", error);
-            toast.error('Error al cargar datos iniciales.', { autoClose: 3000 });
-        } finally {
-            isLoading.value = false;
-        }
-    } else {
-        isLoading.value = false;
-        // Manejar caso donde no hay usuario o SIE
+/**
+ * Orquesta la carga de datos iniciales.
+ */
+const loadInitialData = async () => { // [cite: 240]
+    isLoading.value = true; // [cite: 241]
+    username = localStorage.getItem("username") || ""; // [cite: 241]
+    let user = JSON.parse(localStorage.getItem('user') || '{}'); // [cite: 241]
+    if (!user || !user.codigo_sie) { // [cite: 242]
+        isLoading.value = false; // [cite: 242]
+        toast.error('Usuario no válido o sin SIE asignado.', { autoClose: 3000 }); // [cite: 243]
+        return;
     }
 
+    form.value.sie = user.codigo_sie; // [cite: 243]
+    try {
+        // 1. Cargar datos críticos de la UE y ID de Construcción
+        await findUeByCiAndCodSie(); // [cite: 244]
+        constId.value = await findConstByCiAndUe(); // [cite: 245]
+        await findMiembrosByCodSie();
+        console.info('Iniciando procesamiento de API... constId.value: ', constId.value); // [cite: 246]
 
-});
+        if (!constId.value) { // [cite: 248]
+            toast.warn('No se encontró registro de construcción PCPA. No se puede cargar ni guardar.', { autoClose: 4000 }); // [cite: 248]
+            isLoading.value = false; // [cite: 249]
+            isFormDisabled.value = true; // [cite: 249]
+            isFormDisabledFromNew.value = true; // [cite: 249]
+            return; // [cite: 250]
+        }
 
-const findUnidadesEducativasPorDirector = async () => {
-    console.log("form.value.sie:", form.value.sie);
-    const dataAuth = { username: localStorage.getItem('username'), password: localStorage.getItem('password') };
+        // [NUEVO] 2. Cargar Tipos de Actividad (debe ser lo primero)
+        await loadActividadTipos(); 
+
+        // 3. Cargar el resto de los datos en paralelo
+        await Promise.all([ // [cite: 250]
+            findUnidadesEducativasPorDirector(),
+            findMiembroComision(),
+            findActividadesEjecutadas()
+        ]); // [cite: 251]
+
+        // 4. Ajustar estado de la UI // [cite: 252]
+        if (registroExiste.value) { // [cite: 252]
+            isFormDisabled.value = true; // [cite: 252]
+            isFormDisabledFromNew.value = true; // [cite: 253]
+        } else {
+            isFormDisabled.value = false; // [cite: 253]
+            isFormDisabledFromNew.value = false; // [cite: 254]
+        }
+
+    } catch (error) { // [cite: 254]
+        console.error("Error al cargar datos iniciales:", error); // [cite: 255]
+        toast.error('Error al cargar datos iniciales.', { autoClose: 3000 }); // [cite: 255]
+    } finally {
+        isLoading.value = false; // [cite: 256]
+    }
+};
+
+
+
+
+// --- Carga de Datos (API) ---
+
+/**
+ * Define la estructura de un item en el v-select de actividades (necesario para el tipado).
+ */
+
+interface ActividadTipoItem {
+    id: number;
+    name: string;
+}
+
+interface SavedActividad {
+    id_actividades_ejecutadas: number; // La PK de la fila guardada
+    id_pcpa_actividades_tipo: number;       // El ID del tipo de actividad
+    fec_actividad: string;         // La fecha guardada
+    // ... otros campos
+}
+
+// Asume que 'actividadTipos' y 'formatFecha' están disponibles.
+// const actividadTipos = ref<ActividadTipoItem[]>([]); 
+
+/**
+ * Carga y mapea los tipos de actividades para los v-select.
+ * Mapea 'desc_actividad' a 'name' y añade una opción vacía con ID 0.
+ */
+const loadActividadTipos = async () => {
+    try {
+        const res = await ConvivenciaPacifica.getActividadTipo();
+
+        if (res.status === 200 && Array.isArray(res.data)) {
+            
+            // 💡 Filtrar solo los IDs del 11 al 15
+            const filteredData = res.data.filter(
+                (item: any) => item.id >= 11 && item.id <= 15
+            );
+
+            // 💡 Mapear 'desc_actividad' a 'name' (necesario para item-title="name")
+            const mappedData: ActividadTipoItem[] = filteredData
+                .filter((item: any) => item.desc_actividad) 
+                .map((item: any) => ({
+                    id: item.id,
+                    name: item.desc_actividad, 
+            }));
+
+            // 💡 Añadir la opción vacía con ID 0 para evitar conflictos con la actividad real ID=1
+            const emptyOption: ActividadTipoItem = { id: 0, name: '' };
+            actividadTipos.value = mappedData; //[emptyOption, ...mappedData]; 
+            
+        } else {
+            toast.error('Tipos de Actividad no encontrados.', { autoClose: 3000 });
+        }
+    } catch (error) {
+        console.error("❌ Error al cargar Tipos de Actividad:", error);
+        toast.error('Error al cargar Tipos de Actividad.', { autoClose: 3000 });
+    }
+};
+
+
+
+/**
+ * Carga las actividades guardadas y las puebla en el estado del formulario 
+ * utilizando el helper populateActividadesFromData.
+ */
+const findActividadesEjecutadas = async () => {
+    // Si el SIE no está en el formulario, salimos
+    if (!form.value.sie) return; 
+
+    try {
+        // Asume que la API devuelve un arreglo de SavedActividad[] en res.data
+        const res = await ConvivenciaPacifica.findActividadesEjecutadas(form.value.sie); 
+
+        if (res.data && res.data.length > 0) {
+            
+            // 1. Marcar que el registro existe para inhabilitar campos (si aplica)
+            registroExiste.value = true;
+            isFormDisabled.value = true; // Agregado para mantener coherencia con el helper
+
+            console.log('findActividadesEjecutadas...data: ', res.data); 
+            
+            // 2. Usar el helper para poblar los campos dinámicos (actividad1, actividad1Fecha, etc.)
+            // El helper se encarga de:
+            // - Iterar sobre res.data.
+            // - Buscar el objeto completo de actividad en actividadTipos.value.
+            // - Asignar el objeto al v-select (form.actividadX).
+            // - Asignar la fecha formateada (form.actividadXFecha).
+            // - Guardar el PK de la fila (form.actividadesIds).
+            populateActividadesFromData(res.data); 
+            
+            // Se elimina toda la lógica interna del forEach, ya que el helper la maneja.
+            // Se elimina la llamada a mapearFormularioDesdeActividades() ya que el helper 
+            // puebla directamente form.value.
+            
+            console.log("✅ Actividades cargadas y mapeadas al formulario:", form.value); 
+            
+        } else {
+            console.log("ℹ️ No se encontraron actividades ejecutadas para este SIE.");
+        }
+    } catch (error) { 
+        console.error("❌ Error en findActividadesEjecutadas:", error); 
+        toast.error('Error al buscar actividades.', { autoClose: 3000 }); 
+    }
+};
+
+
+/**
+ * Helper específico para poblar los v-select de Actividades (actividad1, actividad2, etc.)
+ * y sus campos de fecha correspondientes, usando el array de actividades guardadas.
+ * * @param items Array de objetos de actividades guardadas desde la API (e.g., SavedActividad[])
+ */
+const populateActividadesFromData = (
+    items: SavedActividad[]
+) => {
+    
+    if (!items || items.length === 0) {
+        return;
+    }
+
+    // 1. Establecer el estado del formulario como "registro existente"
+    if (!registroExiste.value) {
+        registroExiste.value = true;
+        isFormDisabled.value = true;
+    }
+
+    // 2. Inicializar el contenedor para guardar los PKs
+    if (!form.value.actividadesIds) {
+        form.value.actividadesIds = {};
+    }
+
+    items.forEach((item: SavedActividad, index: number) => {
+        // Solo procesamos las actividades que tienen un campo definido en el formulario (actividad1 a actividad5)
+        if (index >= 5) {
+            return;
+        }
+
+        // --- Mapeo de campos del Formulario ---
+        const formActivityKey = `actividad${index + 1}`; // e.g., 'actividad1'
+        const formDateKey =  `${item.desc_actividades_ejecutadas}Fecha`;// `${formActivityKey}Fecha`;    // e.g., 'actividad1Fecha'
+        
+        // --- 1. Obtener el ID de la actividad guardada ---
+        const savedActivityTypeId = item.id_pcpa_actividades_tipo;
+
+        // --- 2. Buscar el OBJETO completo en la lista de opciones ---
+        // Esto es necesario porque el v-select con 'return-object' espera el objeto completo.
+        const matchingActivity = (actividadTipos.value || []).find(
+            (act: ActividadTipoItem) => act.id === savedActivityTypeId
+        );
+
+        if (matchingActivity) {
+            
+            // 3. Asignar el objeto completo al v-select (form.actividadX)
+            (form.value as any)[item.desc_actividades_ejecutadas] = matchingActivity; //  formActivityKey
+            
+            // 4. Asignar la fecha formateada al text-field (form.actividadXFecha)
+            const dateValue = item.fec_actividad;
+            if (dateValue) {
+                // Asegúrate de que formatFecha convierta de ISO/DB a DD/MM/AAAA
+                (form.value as any)[formDateKey] = formatFecha(dateValue); 
+            }
+
+            // 5. Guardar el ID (PK) de la fila guardada para la actualización/modificación
+            form.value.actividadesIds[formActivityKey] = item.id_actividades_ejecutadas;
+        } else {
+             // Si no se encuentra, asignar nulo o la opción vacía, pero mantener el PK si existe
+             (form.value as any)[formActivityKey] = null; 
+             form.value.actividadesIds[formActivityKey] = item.id_actividades_ejecutadas;
+        }
+    });
+};
+
+
+
+// ... (rest of findUeByCiAndCodSie, findConstByCiAndUe, findUnidadesEducativasPorDirector, findMiembroComision, mapearFormularioDesdeComision) ...
+
+// --- Carga de Datos (API) ---
+
+/**
+ * Carga los datos de la UE (Director, Nombre, etc.)
+ */
+const findUnidadesEducativasPorDirector = async () => { // [cite: 21]
+    const dataAuth = { username: localStorage.getItem('username'), password: localStorage.getItem('password') }; // [cite: 22]
 
     if (String(form.value.sie).length !== 8) {
-        institucionEducativa.value = null;
-        find.value = false;
-        // Limpiar campos del form
-        Object.assign(form.value, {
-            departamentoId: null, departamentoNombre: '', municipioId: null,
-            municipioNombre: '', unidadEducativa: '', nivel: '',
-            modalidad: '', director: ''
-        });
-        console.warn("SIE no válido.");
+        console.warn("SIE no válido para buscar UE."); // [cite: 24]
         return;
     }
 
     try {
         const res = await Auth.listUnidadesEducativasPorDirector(dataAuth);
-        const data = res?.data.data.find((ue: any) => ue.codigo_sie === Number(localStorage.getItem('codigo_sie')));
-
+        const data = res?.data.data.find((ue: any) => ue.codigo_sie === Number(localStorage.getItem('codigo_sie'))); // [cite: 25]
+         console.log('findUnidadesEducativasPorDirector...data: ', data);
         if (data) {
-            Object.assign(form.value, {
-                departamentoId: data.departamento_codigo,
-                departamentoNombre: data.departamento,
-                municipioNombre: data.distrito,
-                unidadEducativa: data.nombre_unidad_educativa,
-                nivel: data.nivel,
-                modalidad: data.dependencia,
-                director: `${data.nombre_director} ${data.ap_paterno_director} ${data.ap_materno_director}`
-            });
-            find.value = true;
+            form.value.unidadEducativa = data.nombre_unidad_educativa;
+            form.value.director = `${data.nombre_director} ${data.ap_paterno_director} ${data.ap_materno_director}`; // [cite: 26]
+            // ... poblar otros campos del form si es necesario
+            find.value = true; // [cite: 27]
             institucionEducativa.value = data;
         } else {
-            console.warn("No se encontró ninguna institución educativa para el SIE:", form.value.sie);
-            find.value = false;
-            institucionEducativa.value = null;
+            console.warn("No se encontró ninguna institución educativa para el SIE:", form.value.sie); // [cite: 28]
+            find.value = false; // [cite: 28]
         }
     } catch (error) {
         console.error("Error en findUnidadesEducativasPorDirector:", error);
-        toast.error('Error al buscar la unidad educativa.', { autoClose: 3000 });
+        toast.error('Error al buscar la unidad educativa.', { autoClose: 3000 }); // [cite: 29]
     }
 };
 
-const findMiembroComision = async () => {
-    if (String(form.value.sie).length !== 8) {
-        miembrosComision.value = null;
-        return;
-    }
-    
+/**
+ * Carga los miembros de comisión guardados y los puebla en el estado.
+ */
+const findMiembroComision = async () => { // [cite: 30]
+    if (!form.value.sie) return;
+
     try {
         const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
-        miembrosComision.value = res.data; // Guardar todos los miembros
 
         if (res.data && res.data.length > 0) {
-            // Lógica para poblar el formulario (Socialización - Tipo 3)
-            const mapMiembro = (comisionTipo: number, miembroTipo: number) => {
-                return res.data.find((obj: any) => obj.id_comision_tipo === comisionTipo && obj.id_miembro_tipo === miembroTipo);
+          //  registroExiste.value = true;
+             localStorage.setItem('existeEnBD', 'true')
+            // Helper para poblar el array del formulario
+            const populateMiembros = (formArray: MiembroComision[], comisionTipoId: number) => {
+                formArray.forEach(miembro => {
+                    const data = res.data.find((d: any) =>
+                        d.id_comision_tipo === comisionTipoId && d.id_miembro_tipo === miembro.tipoId
+                    ); // [cite: 32]
+                      console.log('findMiembroComision...data: ', data);
+                    if (data) {
+                        miembro.status = true; // Si existe, el check está activo
+                        miembro.nombre = data.nombres_miembro;
+                        miembro.id = data.id_miembro; // [cite: 34]
+                    }
+                });
             };
 
-            const socializacionTipos = [
-                { tipo: 1, key: 'Estudiante' }, { tipo: 2, key: 'Director' },
-                { tipo: 3, key: 'Maestro' }, { tipo: 4, key: 'Padre' }, { tipo: 5, key: 'Otro' }
-            ];
+            // Poblar ambas comisiones
+            populateMiembros(form.value.comisionSocializacion, TIPO_COMISION_SOCIALIZACION);
+            populateMiembros(form.value.comisionImplementacion, TIPO_COMISION_IMPLEMENTACION); // [cite: 35]
 
-            socializacionTipos.forEach(item => {
-                const miembro = mapMiembro(3, item.tipo);
-                form.value[`comisionSocializacion${item.key}`] = !!miembro;
-                form.value[`comisionSocializacion${item.key}Nombre`] = miembro?.nombres_miembro || '';
-                form.value[`comisionSocializacion${item.key}Id`] = miembro?.id_miembro || null;
-            });
-
-            // Lógica para poblar el formulario (Implementación - Tipo 4)
-            socializacionTipos.forEach(item => {
-                const miembro = mapMiembro(4, item.tipo);
-                form.value[`comisionImplementacion${item.key}`] = !!miembro;
-                form.value[`comisionImplementacion${item.key}Nombre`] = miembro?.nombres_miembro || '';
-                form.value[`comisionImplementacion${item.key}Id`] = miembro?.id_miembro || null;
-            });
-
-        } else {
-             miembrosComision.value = null;
+               // Ejecutar el mapeo
+            mapearFormularioDesdeComision();
         }
     } catch (error) {
         console.error("Error en findMiembroComision:", error);
-        toast.error('Error al buscar miembros de comisión.', { autoClose: 3000 });
-        miembrosComision.value = null;
+        toast.error('Error al buscar miembros de comisión.', { autoClose: 3000 }); // [cite: 39]
     }
 };
 
-const findActividadesEjecutadas = async () => {
-     try {
-        const res = await ConvivenciaPacifica.findActividadesEjecutadas(form.value.sie);
-        
-        const formatFecha = (fecha: string) => {
-            if (!fecha) return '';
-            const dateParts = fecha.split("-"); // Asume YYYY-MM-DD
-            if (dateParts.length === 3) {
-                return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`; // DD/MM/YYYY
-            }
-            return '';
+// 🔹 Mapeo de los datos cargados a los campos individuales del template
+const mapearFormularioDesdeComision = () => {
+        // --- SOCIALIZACIÓN ---
+        const estudianteSoc = form.value.comisionSocializacion.find((m) => m.key === "Estudiante");
+        const directorSoc = form.value.comisionSocializacion.find((m) => m.key === "Director");
+        const maestroSoc = form.value.comisionSocializacion.find((m) => m.key === "Maestro");
+        const padreSoc = form.value.comisionSocializacion.find((m) => m.key === "Padre");
+        const otroSoc = form.value.comisionSocializacion.find((m) => m.key === "Otro");
+
+        form.value.comisionSocializacionEstudiante = estudianteSoc?.status || false;
+        form.value.comisionSocializacionEstudianteNombre = estudianteSoc?.nombre || "";
+
+        form.value.comisionSocializacionDirector = directorSoc?.status || false;
+        form.value.comisionSocializacionDirectorNombre = directorSoc?.nombre || "";
+
+        form.value.comisionSocializacionMaestro = maestroSoc?.status || false;
+        form.value.comisionSocializacionMaestroNombre = maestroSoc?.nombre || "";
+
+        form.value.comisionSocializacionPadre = padreSoc?.status || false;
+        form.value.comisionSocializacionPadreNombre = padreSoc?.nombre || "";
+
+        form.value.comisionSocializacionOtro = otroSoc?.status || false;
+        form.value.comisionSocializacionOtroNombre = otroSoc?.nombre || "";
+
+        // --- IMPLEMENTACIÓN ---
+        const estudianteImp = form.value.comisionImplementacion.find((m) => m.key === "Estudiante");
+        const directorImp = form.value.comisionImplementacion.find((m) => m.key === "Director");
+        const maestroImp = form.value.comisionImplementacion.find((m) => m.key === "Maestro");
+        const padreImp = form.value.comisionImplementacion.find((m) => m.key === "Padre");
+        const otroImp = form.value.comisionImplementacion.find((m) => m.key === "Otro");
+
+        form.value.comisionImplementacionEstudiante = estudianteImp?.status || false;
+        form.value.comisionImplementacionEstudianteNombre = estudianteImp?.nombre || "";
+
+        form.value.comisionImplementacionDirector = directorImp?.status || false;
+        form.value.comisionImplementacionDirectorNombre = directorImp?.nombre || "";
+
+        form.value.comisionImplementacionMaestro = maestroImp?.status || false;
+        form.value.comisionImplementacionMaestroNombre = maestroImp?.nombre || "";
+
+        form.value.comisionImplementacionPadre = padreImp?.status || false;
+        form.value.comisionImplementacionPadreNombre = padreImp?.nombre || "";
+
+        form.value.comisionImplementacionOtro = otroImp?.status || false;
+        form.value.comisionImplementacionOtroNombre = otroImp?.nombre || "";
+      };
+
+
+   
+
+/**
+ * Busca el ID de la UE.
+ */
+const findUeByCiAndCodSie = async () => { // [cite: 111]
+    try {
+        const payload = {
+            codSie: localStorage.getItem('codigo_sie') || '',
+            username: localStorage.getItem('username') || ''
         };
 
-        if (res.data && res.data.length > 0) {
-            // Mapeo de tipos de actividad a claves del formulario
-            const actividadTipoMap: { [key: number]: string } = {
-                11: 'actividad1', 12: 'actividad2',
-                13: 'actividad3', 14: 'actividad4', 15: 'actividad5'
-            };
+        const res = await ConvivenciaPacifica.findUeByCiAndCodSie(payload); // [cite: 112]
+  console.log('Respuesta de findUeByCiAndCodSie →', res);
+ if (res.status === 200 && res.data && res.data.length >= 1) { // [cite: 113-114]
+      existeCiAndCodSie.value = res.data || [];
+   
+        localStorage.setItem('existeEnBD', 'true');
+        localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+              dataUE = res.data; // Actualiza la variable local
+            idUE.value = dataUE[0].id; // Actualiza el ID de UE
+          return true;
 
-            res.data.forEach((data: any) => {
-                const keyBase = actividadTipoMap[data.id_pcpa_actividades_tipo];
-                if (keyBase) {
-                    form.value[`${keyBase}Id`] = data.id_actividades_ejecutadas;
-                    form.value[keyBase] = data.desc_actividades_ejecutadas;
-                    form.value[`${keyBase}Fecha`] = formatFecha(data.fec_actividad);
-                }
-            });
-            // Si hay al menos una actividad, marcamos que el registro existe
-            if(res.data.length > 0) registroExiste.value = true;
+      } else {
+        localStorage.setItem('existeEnBD', 'false');
+        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+        idUE.value = 0;    
+      toast.error('No se encontró una UE para el Director', {
+        autoClose: 3000,        position: toast.POSITION.TOP_RIGHT,
+      });
+      return false;
+    }
+
+    } catch (error) {
+        console.error('❌ Error en findUeByCiAndCodSie:', error);
+        toast.error('Error de conexión con el servidor (UE).', { autoClose: 3000 }); // [cite: 119]
+    }
+};
+
+/**
+ * Busca el ID de Construcción.
+ */
+const findConstByCiAndUe = async (): Promise<number | null> => { // [cite: 120]
+    try {
+        const payload = { idUE: idUE.value, username: username };
+        const res = await ConvivenciaPacifica.findConstByCiAndUe(payload); // [cite: 122]
+
+        if (res.status === 200 && res.data && res.data.length > 0) { // [cite: 123]
+            if (res.data.length === 1) {
+                localStorage.setItem('idConst', res.data[0].id);
+                return res.data[0].id; // Retorna el ID
+            } else {
+                localStorage.setItem('idConst', '0');
+                toast.warn('Se encontraron múltiples o ninguna construcción para esta UE.', { autoClose: 3500 }); // [cite: 126]
+                return null;
+            }
+        } else {
+            toast.error('No se encontró una construcción para la UE', { autoClose: 3500 }); // [cite: 127]
+            return null;
         }
     } catch (error) {
-        console.error("Error en findActividadesEjecutadas:", error);
-        toast.error('Error al buscar actividades.', { autoClose: 3000 });
+        console.error("Error en findConstByCiAndUe:", error);
+        toast.error('Error de conexión al buscar ID de construcción.', { autoClose: 3500 }); // [cite: 129]
+        return null;
     }
 };
 
-// --- Funciones de Formateo de Inputs (sin cambios) ---
-
-const onDateInput = (cleanedInput: string) => {
-    if (cleanedInput.length <= 2) {
-        return cleanedInput;
-    } else if (cleanedInput.length <= 4) {
-        return cleanedInput.slice(0, 2) + '/' + cleanedInput.slice(2);
-    }
-    // Limita a 8 dígitos (DDMMYYYY)
-    const truncatedInput = cleanedInput.slice(0, 8);
-    return truncatedInput.slice(0, 2) + '/' + truncatedInput.slice(2, 4) + '/' + truncatedInput.slice(4, 8);
-};
-
-const onDateInput1 = (event: any) => { form.value.actividad1Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
-const onDateInput2 = (event: any) => { form.value.actividad2Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
-const onDateInput3 = (event: any) => { form.value.actividad3Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
-const onDateInput4 = (event: any) => { form.value.actividad4Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
-const onDateInput5 = (event: any) => { form.value.actividad5Fecha = onDateInput(event.target.value.replace(/\D/g, '')); };
-
-// --- Validación (sin cambios) ---
-
-const validateForm = () => {
-    validationErrors.value = {};
-    const { actividad1, actividad2, actividad3, actividad4, actividad5,
-            actividad1Fecha, actividad2Fecha, actividad3Fecha, actividad4Fecha, actividad5Fecha } = form.value;
-
-    if (!actividad1 && !actividad2 && !actividad3 && !actividad4 && !actividad5) {
-        validationErrors.value['actividad'] = true;
-    }
-    if (actividad1 && !actividad1Fecha) validationErrors.value['actividad1'] = true;
-    if (actividad2 && !actividad2Fecha) validationErrors.value['actividad2'] = true;
-    if (actividad3 && !actividad3Fecha) validationErrors.value['actividad3'] = true;
-    if (actividad4 && !actividad4Fecha) validationErrors.value['actividad4'] = true;
-    if (actividad5 && !actividad5Fecha) validationErrors.value['actividad5'] = true;
-   
-    return Object.keys(validationErrors.value).length === 0;
-};
-
-// --- Función de Reseteo (sin cambios) ---
-const reset = () => {
-    form.value.actividad1 = null;
-    form.value.actividad2 = null;
-    form.value.actividad3 = null;
-    form.value.actividad4 = null;
-    form.value.actividad5 = null;
-    form.value.actividad1Fecha = '';
-    form.value.actividad2Fecha = '';
-    form.value.actividad3Fecha = '';
-    form.value.actividad4Fecha = '';
-    form.value.actividad5Fecha = '';
-    form.value.actividad1Id = null;
-    form.value.actividad2Id = null;
-    form.value.actividad3Id = null;
-    form.value.actividad4Id = null;
-    form.value.actividad5Id = null;
-    // También resetear comisiones
-    // ...
-    dialogSave.value = false;
-};
-
-// --- Constantes (sin cambios) ---
-const actividadTipo = [
-    { id: 1, name: '' },  
-    { id: 2, name: 'MEDIOS DE COMUNICACIÓN INTERNA' },  
-    { id: 3, name: 'REDES SOCIALES' },  
-    { id: 4, name: 'TALLERES' },  
-    { id: 5, name: 'FERIAS' },  
-    { id: 6, name: 'OTROS' }
-];
-
-// --- FUNCIONES AUXILIARES REFACTORIZADAS ---
+// --- Lógica de Guardado (API) ---
 
 /**
- * Convierte una fecha en formato DD/MM/YYYY a un string ISO (YYYY-MM-DDTHH:mm:ss.sssZ)
+ * Función principal de guardado.
  */
-const parseDate = (dateString: string): string | null => {
-    if (!dateString || dateString.length !== 10) return null;
-    const parts = dateString.split('/');
-    if (parts.length !== 3) return null;
-    // parts[2] = YYYY, parts[1] = MM, parts[0] = DD
-    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toISOString();
-};
-
-/**
- * Sincroniza (Crea/Actualiza/Elimina) los miembros de una comisión.
- */
-const syncComisionMiembros = async (miembros: any[], comisionTipoId: number, constId: number) => {
-    const promises: Promise<any>[] = [];
-
-    for (const [index, member] of miembros.entries()) {
-        const payload = {
-            id_pcpa_construccion: constId,
-            id_pcpa_comision_tipo: comisionTipoId,
-            id_pcpa_miembro_tipo: member.tipoId,
-            orden: index + 1,
-            nombres_miembro: member.value || '',
-            apellidos_miembro: '',
-            check_miembro_comision: member.status,
-           // estado: 'ACTIVO',
-           // usu_cre: username, // O usu_mod si es actualización
-           // fec_cre: new Date() // O fec_mod
-        };
-
-        if (member.status && member.value ) {
-            // Si tiene estado y valor, es una creación o actualización
-            if (member.id ) {  
-                                
-               // Actualizar miembros socializacion   
-                  payload.estado= 'MODIFICADO',             
-                 payload.usu_mod = username;
-                 payload.fec_mod = new Date();
-                 promises.push(ConvivenciaPacifica.updateMiembroComision(member.id, payload));
-                
-                 // el codigo comentado a continuacion no es necesario
-                // --- INICIO: Solución provisional si NO HAY UPDATE (Eliminar y Crear) ---
-                // 1. Eliminar si existe
-                //if(member.id) promises.push(ConvivenciaPacifica.deleteMiembroComision(member.id));
-                // 2. Crear
-               // promises.push(ConvivenciaPacifica.createMiembroComision(payload));
-                // --- FIN: Solución provisional ---
-
-            } else if (!member.id  ) {
-
-                // Crear miembros socializacion
-                   payload.estado= 'ACTIVO',
-                payload.usu_cre = username;
-                 payload.fec_cre = new Date();
-                promises.push(ConvivenciaPacifica.createMiembroComision(payload));
-            }
-        } else if (!member.status && member.id) {
-            // el codigo comentado a continuacion no es necesario
-            // Si no tiene estado pero sí ID, es una eliminación
-          //  promises.push(ConvivenciaPacifica.deleteMiembroComision(member.id));
-        }
-    }
-    return Promise.all(promises);
-};
-
-/**
- * Sincroniza (Crea/Actualiza/Elimina) las actividades.
- */
-const syncActividades = async (activities: any[], constId: number) => {
-    const promises: Promise<any>[] = [];
-
-    for (const activity of activities) {
-        const fechaISO = parseDate(activity.fecha);
-        
-        const payload = {
-            id_pcpa_actividades_tipo: activity.tipoId,
-            id_pcpa_construccion: constId,
-            desc_actividad: (activity.value && typeof activity.value === 'object')  ? activity.value.name : activity.value ,//activity.value != null ? activity.value : '', //  name
-            fec_actividad: fechaISO,
-           // usu_cre: username,
-           // fec_cre: new Date()
-        };
-
-        if (activity.value && fechaISO) {
-            // Si tiene valor y fecha, es actualización
-            if (activity.id  ) { 
-                // Actualizar actividad
-                 payload.estado= 'MODIFICADO',
-                 payload.usu_mod = username;
-                 payload.fec_mod = new Date();
-                 promises.push(ConvivenciaPacifica.updateSocializacion(activity.id, payload));
-                
-                 // el codigo comentado a continuacion no es necesario
-                // --- INICIO: Solución provisional si NO HAY UPDATE (Eliminar y Crear) ---
-             //   if(activity.id) promises.push(ConvivenciaPacifica.deleteActividadesEjecutadas(activity.id));
-             //   promises.push(ConvivenciaPacifica.createSocializacion(payload));
-                // --- FIN: Solución provisional ---
-
-            } else if (!activity.id  ) {
-                // Crear actividad            
-            //  payload.desc_actividad= activity.value != null ? activity.value.name : '', //  
-                payload.estado= 'ACTIVO',
-                 payload.usu_cre = username;
-                 payload.fec_cre = new Date();
-                promises.push(ConvivenciaPacifica.createSocializacion(payload));
-            }
-        } else if (!activity.value && activity.id) {
-            // el codigo comentado a continuacion no es necesario
-            // Si no tiene valor pero sí ID, es eliminación
-           // promises.push(ConvivenciaPacifica.deleteActividadesEjecutadas(activity.id));
-        }
-    }
-    return Promise.all(promises);
-};
-
-// --- FUNCIONES PRINCIPALES DE GUARDADO (create / update) ---
-
-/**
- * Prepara los datos del formulario para ser enviados.
- */
-const getDatosFormulario = () => {
-    const socializacionMiembros = [
-        { tipoId: 1, status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
-        { tipoId: 2, status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId },
-        { tipoId: 3, status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId },
-        { tipoId: 4, status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId },
-        { tipoId: 5, status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId }
-    ];
-
-    const implementacionMiembros = [
-        { tipoId: 1, status: form.value.comisionImplementacionEstudiante, value: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId },
-        { tipoId: 2, status: form.value.comisionImplementacionDirector, value: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId },
-        { tipoId: 3, status: form.value.comisionImplementacionMaestro, value: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId },
-        { tipoId: 4, status: form.value.comisionImplementacionPadre, value: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId },
-        { tipoId: 5, status: form.value.comisionImplementacionOtro, value: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId }
-    ];
-
-    const activities = [
-        { tipoId: 11, value: form.value.actividad1, fecha: form.value.actividad1Fecha, id: form.value.actividad1Id },
-        { tipoId: 12, value: form.value.actividad2, fecha: form.value.actividad2Fecha, id: form.value.actividad2Id },
-        { tipoId: 13, value: form.value.actividad3, fecha: form.value.actividad3Fecha, id: form.value.actividad3Id },
-        { tipoId: 14, value: form.value.actividad4, fecha: form.value.actividad4Fecha, id: form.value.actividad4Id },
-        { tipoId: 15, value: form.value.actividad5, fecha: form.value.actividad5Fecha, id: form.value.actividad5Id }
-    ];
-    
-    return { socializacionMiembros, implementacionMiembros, activities };
-};
-
-/**
- * Función `registro` actualizada que dirige a create o update.
- */
-const registro = async () => {
+const registro = async () => { // [cite: 98]
     console.log(`Iniciando guardado (Existe: ${registroExiste.value})`);
-    
-    if (!validateForm()) {
+    if (!validateForm()) { // [cite: 99]
         dialog.value = false;
-        toast.info('Debe ingresar los datos requeridos', {
-            autoClose: 3000,
-            position: toast.POSITION.TOP_RIGHT,
-        });
+        toast.info('Debe ingresar los datos requeridos', { autoClose: 3000 }); // [cite: 100]
         return;
     }
 
-    isLoading.value = true;
+   
+      isLoading.value = true;
     isFormDisabled.value = true;
+    // Asumo que esta variable también existe
+    if (isFormDisabledFromNew) isFormDisabledFromNew.value = true;// Deshabilitar todo al guardar
 
-    try {
-        const constId = await findConstByCiAndUe();
-        if (!constId) {
+   try {
+        // 1. Obtener constId (asumiendo que ya lo tienes en constId.value)
+        if (!constId.value) {
+                toast.error('Error crítico: No hay ID de construcción. No se puede guardar.', { autoClose: 3000 });
             throw new Error('No se pudo encontrar el ID de construcción para la UE.');
         }
 
-        const { socializacionMiembros, implementacionMiembros, activities } = getDatosFormulario();
+        // 2. [EL ARREGLO ESTÁ AQUÍ]
+        // Re-construir los arrays desde el 'form' plano, basado en [cite: 94-97]
 
-        // Ejecutar todas las sincronizaciones en paralelo
+        // Construir Miembros de Socialización
+        const socializacionMiembros = [
+            { tipoId: 1, status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
+            { tipoId: 2, status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId },
+            { tipoId: 3, status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId },
+            { tipoId: 4, status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId },
+            { tipoId: 5, status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId }
+        ]; //[cite: 94-95]
+
+        // Construir Miembros de Implementación
+        const implementacionMiembros = [
+            { tipoId: 1, status: form.value.comisionImplementacionEstudiante, value: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId },
+            { tipoId: 2, status: form.value.comisionImplementacionDirector, value: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId },
+            { tipoId: 3, status: form.value.comisionImplementacionMaestro, value: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId },
+            { tipoId: 4, status: form.value.comisionImplementacionPadre, value: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId },
+            { tipoId: 5, status: form.value.comisionImplementacionOtro, value: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId }
+        ]; //[cite: 95]
+
+        // ¡Corrección clave!
+        // Creamos el array 'activities' usando las variables planas
+        // y la propiedad 'nombre' que 'syncActividades' espera.
+        const activities: Actividad[] = [ // (Asumiendo que tienes la Interfaz 'Actividad' definida)
+            { key: 'actividad1', tipoId: 11, nombre: form.value.actividad1, fecha: form.value.actividad1Fecha, id: form.value.actividad1Id },
+            { key: 'actividad2', tipoId: 12, nombre: form.value.actividad2, fecha: form.value.actividad2Fecha, id: form.value.actividad2Id },
+            { key: 'actividad3', tipoId: 13, nombre: form.value.actividad3, fecha: form.value.actividad3Fecha, id: form.value.actividad3Id },
+            { key: 'actividad4', tipoId: 14, nombre: form.value.actividad4, fecha: form.value.actividad4Fecha, id: form.value.actividad4Id },
+            { key: 'actividad5', tipoId: 15, nombre: form.value.actividad5, fecha: form.value.actividad5Fecha, id: form.value.actividad5Id }
+        ];
+        
+
+        // 3. Ejecutar todas las sincronizaciones en paralelo
         await Promise.all([
-            syncComisionMiembros(socializacionMiembros, 3, constId), // 3 = Socialización
-            syncComisionMiembros(implementacionMiembros, 4, constId), // 4 = Implementación
-            syncActividades(activities, constId)
+            syncComisionMiembros(socializacionMiembros, 3, constId.value), // 3 = Socialización
+            syncComisionMiembros(implementacionMiembros, 4, constId.value), // 4 = Implementación
+            syncActividades( constId.value) // <-- Pasamos el array recién creado
         ]);
 
+
         // Éxito
-        toast.success('Registros guardados correctamente', {
-            autoClose: 3000,
-            position: toast.POSITION.TOP_RIGHT,
-        });
+        toast.success('Registros guardados correctamente', { autoClose: 3000 }); // [cite: 106]
         dialog.value = false;
         dialogSave.value = true;
-        registroExiste.value = true; // El registro ahora existe (o sigue existiendo)
-
+      //  registroExiste.value = true; // El registro ahora existe
+           localStorage.setItem('existeEnBD', 'true')
         // Recargar datos para obtener nuevos IDs y estados
         await findMiembroComision();
-        await findActividadesEjecutadas();
-
+        await findActividadesEjecutadas(); // [cite: 108]
+  //await findMiembrosByCodSie();
     } catch (error: any) {
         console.error("Error al guardar:", error);
-        toast.error(`Error al guardar: ${error.message || 'Error desconocido'}`, {
-            autoClose: 3000,
-            position: toast.POSITION.TOP_RIGHT,
-        });
+        toast.error(`Error al guardar: ${error.message || 'Error desconocido'}`, { autoClose: 3000 }); // [cite: 109]
+        // Permitir reintentar si falla
+        isFormDisabled.value = false;
+        // La lógica original // [cite: 17] mantiene los campos de comisión deshabilitados al "modificar",
+        // así que isFormDisabledFromNew se queda en 'true'.
     } finally {
-        isLoading.value = false;
+        isLoading.value = false; // [cite: 110]
     }
 };
-// --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
-const findUeByCiAndCodSie = async () => {
+
+
+
+const findMiembrosByCodSie = async () => {
   try {
     form.value.codSie = localStorage.getItem('codigo_sie') || '';
-    form.value.username = localStorage.getItem('username') || '';
-    const res = await ConvivenciaPacifica.findUeByCiAndCodSie(form.value);
-    console.log('Respuesta de findUeByCiAndCodSie →', res);
+
+    const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.codSie);
+    console.log('Respuesta de listMiembrosComision →', res);
 
     if (res.status === 200) {
       existeCiAndCodSie.value = res.data || [];
 
       if (existeCiAndCodSie.value.length >= 1) {
-        localStorage.setItem('existeEnBD', 'true');
-        localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
-         dataUE = JSON.parse(localStorage.getItem('dataUE') || '[{}]');
-         idUE = dataUE[0].id;
+        localStorage.setItem('existeMiembro', 'true');
+        localStorage.setItem('existeMiembroTipo', 'true');
+       // localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
       } else {
-        localStorage.setItem('existeEnBD', 'false');
-        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+        localStorage.setItem('existeMiembro', 'false');
+        localStorage.setItem('existeMiembroTipo', JSON.stringify([{ id: 0 }]));
       }
-
+  console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
       return true;
     } else {
-      toast.error('No se encontró una UE para el Director', {
+      toast.error('No se encontró una miembro para la UE', {
         autoClose: 3000,
         position: toast.POSITION.TOP_RIGHT,
       });
@@ -580,8 +734,8 @@ const findUeByCiAndCodSie = async () => {
     }
 
   } catch (error) {
-    console.error('❌ Error en findUeByCiAndCodSie:', error);
-    toast.error('Error de conexión con el servidor.', {
+    console.error('❌ Error en listMiembrosComision:', error);
+    toast.error('Error de conexión con el servidor. listMiembrosComision', {
       autoClose: 3000,
       position: toast.POSITION.TOP_RIGHT,
     });
@@ -589,35 +743,310 @@ const findUeByCiAndCodSie = async () => {
   }
 };
 
-// --- Función findConstByCiAndUe (Mejorada) ---
-const findConstByCiAndUe = async (): Promise<number | null> => {
-    form.value.idUE = idUE;
-  //  form.value.username = username;
-    
-    try {
-        const res = await ConvivenciaPacifica.findConstByCiAndUe(form.value);
-        if (res.status === 200 && res.data && res.data.length > 0) {
-            const existeCiAndCodSie = res.data;
-            if (existeCiAndCodSie.length === 1) {
-                localStorage.setItem('idConst', existeCiAndCodSie[0].id);
-                return existeCiAndCodSie[0].id;
+
+/**
+ * Sincroniza (Crea/Actualiza) los miembros de una comisión.
+ */
+const syncComisionMiembros = async (miembros: MiembroComision[], comisionTipoId: number, constId: number) => { // [cite: 72-73]
+    const promises: Promise<any>[] = [];
+
+    for (const [index, member] of miembros.entries()) {
+        const payload: any = {
+            id_pcpa_construccion: constId,
+            id_pcpa_comision_tipo: comisionTipoId,
+            id_pcpa_miembro_tipo: member.tipoId,
+            orden: index + 1,
+            nombres_miembro: member.nombre || '', // [cite: 74-75]
+            apellidos_miembro: '',
+            check_miembro_comision: member.status,
+        };
+
+        if (member.status && member.nombre) { // [cite: 76]
+            // Si tiene estado y valor, es una creación o actualización
+            if (member.id) {
+                // Actualizar
+                payload.estado = 'MODIFICADO'; // [cite: 77]
+                payload.usu_mod = username;
+                payload.fec_mod = new Date(); // [cite: 78]
+                promises.push(ConvivenciaPacifica.updateMiembroComision(member.id, payload)); // [cite: 78]
             } else {
-                localStorage.setItem('idConst', '0');
-                toast.warn('Se encontraron múltiples o ninguna construcción para esta UE.', { autoClose: 3500 });
-                return null;
+                // Crear
+                payload.estado = 'ACTIVO';
+                payload.usu_cre = username;
+                payload.fec_cre = new Date(); // [cite: 81]
+                promises.push(ConvivenciaPacifica.createMiembroComision(payload)); // [cite: 81]
             }
-        } else {
-            toast.error('No se encontró una UE para el Director', { autoClose: 3500 });
-            return null;
+        } else if (!member.status && member.id) {
+            // [LOGICA ORIGINAL] La eliminación está comentada en el script original // [cite: 81-82]
+            // promises.push(ConvivenciaPacifica.deleteMiembroComision(member.id));
         }
-    } catch (error) {
-        console.error("Error en findConstByCiAndUe:", error);
-        toast.error('Error de conexión al buscar ID de construcción.', { autoClose: 3500 });
-        return null;
     }
+    return Promise.all(promises);
+};
+
+/**
+ * Sincroniza (Crea/Actualiza/Desactiva) las actividades ejecutadas.
+ * Itera sobre los campos planos del formulario (actividad1, actividad2, etc.).
+ */
+const syncActividades = async (constId: number) => { 
+    const promises: Promise<any>[] = []; 
+    // Los 5 slots de actividad que esperamos en el formulario
+    const formKeys = ['actividad1', 'actividad2', 'actividad3', 'actividad4', 'actividad5']; 
+
+    // Helper para obtener el PK del registro guardado
+    const getOldActivityId = (key: string) => form.value.actividadesIds?.[key] || null;
+
+    for (const key of formKeys) { 
+        // 1. Obtener los valores del formulario
+        const activityObject = (form.value as any)[key] as ActividadTipoItem | null;
+        const dateString = (form.value as any)[`${key}Fecha`] as string | null;
+        const oldActivityId = getOldActivityId(key); // PK de la fila guardada
+
+        // 2. Determinar el estado de los datos
+        const actividadTipoId: number | null = activityObject?.id || null;
+        const fechaISO = parseDate(dateString || '');
+        
+        // El registro tiene datos válidos si tiene un tipo de actividad seleccionado Y una fecha.
+        const hasValidData = actividadTipoId !== null && !!fechaISO;
+        // El registro existía si tenemos un ID (PK) guardado.
+        const existedInOldData = !!oldActivityId;
+
+        console.log(`Actividad ${key} | PK: ${oldActivityId} | Tiene Datos: ${hasValidData}`); 
+
+        // 3. Construir el Payload base para CREATE/UPDATE/DEACTIVATE
+        const payload: any = { 
+            id_pcpa_actividades_tipo: actividadTipoId,
+            id_pcpa_construccion: constId,
+            desc_actividad: key, //activityObject?.name || null,
+            fec_actividad: fechaISO,
+        }; 
+        
+        // --- Lógica de Sincronización (CREATE / UPDATE / DEACTIVATE) ---
+        
+        if (hasValidData) {
+            // Caso 1: Tiene datos válidos (CREATE o UPDATE)
+            
+            if (existedInOldData) { 
+                // A. ACTUALIZAR: Ya existía y tiene datos
+                console.log(`Actualizando actividad ${key} con ID: ${oldActivityId}`);
+                payload.estado = 'MODIFICADO'; // o 'ACTIVO' según la lógica de tu API
+                payload.usu_mod = username; 
+                payload.fec_mod = new Date(); 
+                promises.push(ConvivenciaPacifica.updateSocializacion(oldActivityId, payload)); 
+            } else { 
+                // B. CREAR: No existía y tiene datos
+                console.log(`Creando nueva actividad ${key}`); 
+                payload.estado = 'ACTIVO'; 
+                payload.usu_cre = username; 
+                payload.fec_cre = new Date(); 
+                promises.push(ConvivenciaPacifica.createSocializacion(payload)); 
+            }
+        
+        } else if (existedInOldData) { 
+            // Caso 2: No tiene datos válidos, pero existía (DEACTIVATE)
+            
+            // Esto ocurre si se borra el v-select y/o el campo de fecha.
+            console.log(`Desactivando actividad ${key} con ID: ${oldActivityId}`); 
+            
+            payload.estado = 'INACTIVO'; 
+            payload.usu_mod = username; 
+            payload.fec_mod = new Date(); 
+            
+            // Usamos el ID existente (PK) para enviar la desactivación.
+            promises.push(ConvivenciaPacifica.updateSocializacion(oldActivityId, payload)); 
+            
+        } else { 
+            // Caso 3: No tiene datos válidos y no existía (IGNORAR)
+            console.log(`Ignorando slot ${key}: vacío.`);
+        }
+    }
+    
+    // Ejecutar todas las promesas de forma concurrente
+    return Promise.all(promises); 
+};
+
+
+// --- Control de UI y Formulario ---
+
+/**
+ * Habilita el formulario para un nuevo registro.
+ */
+const iniciarNuevoRegistro = () => { // [cite: 16]
+    console.log('Ingresar nuevo registro clickeado.');
+    isFormDisabled.value = false;
+    isFormDisabledFromNew.value = false; // Habilita *todo*
+    reset(); // Limpia el formulario
+};
+
+/**
+ * Habilita el formulario para modificar un registro existente.
+ */
+const modificarRegistro = () => { // [cite: 17]
+    console.log('Modificar registro.');
+    isFormDisabled.value = false; // Habilita "Actividades" y "Registrar"
+    // isFormDisabledFromNew se mantiene 'true', deshabilitando "Comisiones"
+};
+
+/**
+ * Valida el formulario antes de guardar.
+ */
+/**
+ * Valida el formulario antes de guardar.
+ */
+const validateForm = (): boolean => {
+    validationErrors.value = {};
+
+    const formData = form.value;
+
+    // 🔹 Buscar propiedades del objeto que empiecen con "actividad"
+    const actividadKeys = Object.keys(formData).filter(k => k.startsWith('actividad') && !k.endsWith('Fecha'));
+
+    // 🔹 Validar si al menos una tiene "name" distinto de null o vacío
+    const hasAnyActivity = actividadKeys.some(key => {
+        const actividad = formData[key];
+        return (
+            actividad &&
+            typeof actividad === 'object' &&
+            actividad.name &&
+            actividad.name.trim() !== ''
+        );
+    });
+
+    if (!hasAnyActivity) {
+        validationErrors.value['actividad'] = true;
+    }
+
+    // 🔹 Validar que si una actividad tiene "name", también tenga su "Fecha" correspondiente
+    actividadKeys.forEach(key => {
+        const actividad = formData[key];
+        const fechaKey = `${key}Fecha`; // ej. "actividad1Fecha"
+        const fecha = formData[fechaKey];
+
+        const hasValidName =
+            actividad &&
+            typeof actividad === 'object' &&
+            actividad.name &&
+            actividad.name.trim() !== '';
+
+        if (hasValidName && (!fecha || fecha.trim() === '')) {
+            validationErrors.value[key] = true;
+        }
+    });
+
+    return Object.keys(validationErrors.value).length === 0;
+};
+
+
+/**
+ * Resetea el formulario a su estado inicial.
+ */
+const reset = () => { // [cite: 64]
+    // Preserva los datos de la UE
+    const sie = form.value.sie;
+    const unidadEducativa = form.value.unidadEducativa;
+    const director = form.value.director;
+
+    // Resetea el formulario
+    form.value = {
+        ...getDefaultFormState(),
+        // Restaura los datos de la UE
+        sie,
+        unidadEducativa,
+        director,
+    };
+
+    dialogSave.value = false;
+    registroExiste.value = false;
+};
+
+
+
+// --- Funciones Utilitarias ---
+
+/**
+ * Helper para formatear fecha de 'YYYY-MM-DD...' a 'DD/MM/YYYY'
+ */
+const formatFecha = (fecha: string): string => { // [cite: 41]
+    if (!fecha) return '';
+    const dateParts = fecha.split("T")[0].split("-"); // Asume YYYY-MM-DD
+    if (dateParts.length === 3) {
+        return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`; // DD/MM/YYYY
+    }
+    return '';
+};
+
+/**
+ * Convierte fecha DD/MM/YYYY a ISO String
+ */
+const parseDate = (dateString: string): string | null => { // [cite: 69-70]
+    if (!dateString || dateString.length !== 10) return null;
+    const parts = dateString.split('/');
+    if (parts.length !== 3) return null; // [cite: 71]
+    // parts[2] = YYYY, parts[1] = MM, parts[0] = DD
+    return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).toISOString();
+};
+
+/**
+ * Formatea el texto del input de fecha.
+ */
+const XXformatAndCleanDate = (cleanedInput: string): string => { // [cite: 49]
+    if (cleanedInput.length <= 2) {
+        return cleanedInput;
+    } else if (cleanedInput.length <= 4) { // [cite: 50]
+        return `${cleanedInput.slice(0, 2)}/${cleanedInput.slice(2)}`;
+    }
+    const truncatedInput = cleanedInput.slice(0, 8);
+    return `${truncatedInput.slice(0, 2)}/${truncatedInput.slice(2, 4)}/${truncatedInput.slice(4, 8)}`; // [cite: 52]
+};
+
+
+// ... (rest of mapearFormularioDesdeActividades, registro, syncComisionMiembros) ...
+
+
+  // 🔹 Mapeo a los campos individuales del formulario (como en el template)
+const XXXmapearFormularioDesdeActividades = () => {
+        const setActividad = (key: string, index: number) => {
+          const act = form.value.actividades.find((a) => a.key === key);
+          if (!act) return;
+
+          // Ejemplo: form.value.actividad1 = {id: 2, name: "..."} o null
+          form.value[`actividad${index}`] = act.nombre || null;
+          form.value[`actividad${index}Fecha`] = act.fecha || "";
+        };
+
+        setActividad("actividad1", 1);
+        setActividad("actividad2", 2);
+        setActividad("actividad3", 3);
+        setActividad("actividad4", 4);
+        setActividad("actividad5", 5);
+      };
+
+
+
+// ... (rest of the script) ...
+
+const onDateInput = (event: any) => {
+  let value = event.target.value.replace(/\D/g, "");
+
+  if (value.length > 2 && value.length <= 4) {
+    value = value.replace(/^(\d{2})(\d+)/, "$1/$2");
+  } else if (value.length > 4) {
+    value = value.replace(/^(\d{2})(\d{2})(\d+)/, "$1/$2/$3");
+  }
+
+  value = value.substring(0, 10);
+  event.target.value = value;
+
+  // Validar día, mes y año básico
+  const [day, month, year] = value.split("/").map(Number);
+  if (month > 12 || day > 31 || year < 1900 || year > 2100) {
+    console.warn("⚠️ Fecha inválida:", value);
+  }
 };
 
 </script>
+
+
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -762,11 +1191,11 @@ const findConstByCiAndUe = async (): Promise<number | null> => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad1" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
+                                <v-select v-model="form.actividad1" :items="actividadTipos" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad1Fecha" label="Fecha"  @input="onDateInput1" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                                <v-text-field v-model="form.actividad1Fecha" label="Fecha"  @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -774,11 +1203,11 @@ const findConstByCiAndUe = async (): Promise<number | null> => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad2" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
+                                <v-select v-model="form.actividad2" :items="actividadTipos" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad2Fecha" label="Fecha"  @input="onDateInput2" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                                <v-text-field v-model="form.actividad2Fecha" label="Fecha"  @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -786,11 +1215,11 @@ const findConstByCiAndUe = async (): Promise<number | null> => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad3" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
+                                <v-select v-model="form.actividad3" :items="actividadTipos" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad3Fecha" label="Fecha"  @input="onDateInput3" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                                <v-text-field v-model="form.actividad3Fecha" label="Fecha"  @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -798,11 +1227,11 @@ const findConstByCiAndUe = async (): Promise<number | null> => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad4" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
+                                <v-select v-model="form.actividad4" :items="actividadTipos" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad4Fecha" label="Fecha"  @input="onDateInput4" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                                <v-text-field v-model="form.actividad4Fecha" label="Fecha"  @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="2" >
@@ -810,11 +1239,11 @@ const findConstByCiAndUe = async (): Promise<number | null> => {
                             </v-col>
 
                             <v-col cols="12" md="6" >
-                                <v-select v-model="form.actividad5" :items="actividadTipo" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
+                                <v-select v-model="form.actividad5" :items="actividadTipos" item-title="name" item-value="id" label="Nombre" return-object :disabled="isFormDisabled"></v-select>
                             </v-col>
 
                             <v-col cols="12" md="4" >
-                                <v-text-field v-model="form.actividad5Fecha" label="Fecha"  @input="onDateInput5" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
+                                <v-text-field v-model="form.actividad5Fecha" label="Fecha"  @input="onDateInput" placeholder="DD/MM/AAAA" hide-details required :disabled="isFormDisabled"></v-text-field>
                             </v-col>
 
                             <v-col cols="12" md="12" >                                
