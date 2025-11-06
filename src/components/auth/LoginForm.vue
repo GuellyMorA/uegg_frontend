@@ -91,16 +91,20 @@ const findUeByCiAndCodSie = async () => {
       if (existeCiAndCodSie.value.length >= 1) {
         localStorage.setItem('existeEnBD', 'true');
         localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+         return true;
       } else {
         localStorage.setItem('existeEnBD', 'false');
         localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+          toast.error('No se encontró una UE registrada en base de datos local para el Director', {
+        autoClose: 5000,    position: toast.POSITION.TOP_RIGHT,
+      });
+         return false;
       }
 
       return true;
     } else {
       toast.error('No se encontró una UE para el Director', {
-        autoClose: 3000,
-        position: toast.POSITION.TOP_RIGHT,
+        autoClose: 3000,    position: toast.POSITION.TOP_RIGHT,
       });
       return false;
     }

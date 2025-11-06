@@ -20,15 +20,7 @@ const MIEMBRO_TIPO_MAP = { // [cite: 205]
     Otro: 5,
 };
 
-// IDs de Tipos de Actividad (de la BD) - Se mantiene para definir los tipos estáticos de cada slot // [cite: 206]
-/*const ACTIVIDAD_TIPO_MAP = { // [cite: 206]
-    actividad1: 11, // 'actividad1',
-    actividad2: 12,
-    actividad3: 13,
-    actividad4: 14,
-    actividad5: 15,
-}; // [cite: 207]
-*/
+
 
 // Mapa de tipos de actividad (se llena dinámicamente desde la BD)
 let ACTIVIDAD_TIPO_MAP: Record<string, number> = {};
@@ -64,27 +56,6 @@ interface Actividad { // [cite: 214]
     fecha: string; // El v-text-field (DD/MM/YYYY)
     id: number | null; // [cite: 217]
 }
-
-/**
- * Define la estructura completa del estado del formulario.
- */
-interface FormState { // [cite: 218]
-    sie: number | null;
-    unidadEducativa: string;
-    director: string; // [cite: 219]
-    comisionSocializacion: MiembroComision[];
-    comisionImplementacion: MiembroComision[];
-    actividades: Actividad[];
-    validado: boolean; // [cite: 220]
-    
-    // [NUEVO] Propiedades planas añadidas para la gestión de formulario
-    // ... (Estas propiedades planas deben definirse si se usan en el template, ej: actividad1, actividad1Fecha)
-    // Se asume que las propiedades planas están definidas implícitamente en el FormState en la implementación real
-    // por la forma en que se usan en registro() y mapearFormularioDesdeActividades().
-    [key: string]: any;
-}
-
-
 // --- Helpers para Estado Inicial ---
 
 /**
@@ -108,6 +79,25 @@ const createDefaultActividad = (key: string, tipoId: number, nombre: ActividadTi
     fecha,
     id: null
 }); // [cite: 224]
+
+/**
+ * Define la estructura completa del estado del formulario.
+ */
+interface FormState { // [cite: 218]
+    sie: number | null;
+    unidadEducativa: string;
+    director: string; // [cite: 219]
+    comisionSocializacion: MiembroComision[];
+    comisionImplementacion: MiembroComision[];
+    actividades: Actividad[];
+    validado: boolean; // [cite: 220]
+    
+    // [NUEVO] Propiedades planas añadidas para la gestión de formulario
+    // ... (Estas propiedades planas deben definirse si se usan en el template, ej: actividad1, actividad1Fecha)
+    // Se asume que las propiedades planas están definidas implícitamente en el FormState en la implementación real
+    // por la forma en que se usan en registro() y mapearFormularioDesdeActividades().
+    [key: string]: any;
+}
 
 /**
  * Genera el estado inicial del formulario, respetando los valores por defecto del script original.
@@ -152,6 +142,9 @@ const getDefaultFormState = (): FormState => { // [cite: 225]
         ]
     }; // [cite: 231]
 };
+// Estado del formulario
+const form = ref<FormState>(getDefaultFormState()); // [cite: 233]
+
 
 
 // --- Estado Reactivo ---
@@ -164,7 +157,7 @@ const validationErrors = ref<Record<string, boolean>>({}); // [cite: 232]
 const find = ref(false); // [cite: 232]
 const isLoading = ref(true); // [cite: 232]
 const institucionEducativa = ref<any>(null); // [cite: 233]
-const form = ref<FormState>(getDefaultFormState()); // [cite: 233]
+
 const constId = ref<number | null>(null); // [cite: 233]
 
 // [NUEVO] Lista de tipos de actividades cargados dinámicamente
@@ -174,6 +167,8 @@ const actividadTipos = ref<ActividadTipoItem[]>([]);
 const registroExiste = ref(localStorage.getItem('existeMiembro') === 'true'); // [cite: 234]
 const isFormDisabled = ref(true); // [cite: 234]
 const isFormDisabledFromNew = ref(true); // [cite: 235]
+//const existeMiembro  = ref(localStorage.getItem('existeMiembro') === 'true'); // [cite: 234]
+
 
 // Variables
 let username: string = ''; // [cite: 235]
@@ -187,9 +182,14 @@ const sieRules = [ // [cite: 237]
     (value: any) => (String(value)?.length === 8) || 'El código SIE requiere 8 dígitos.', // [cite: 239]
 ];
 
+
+
+
+
 // --- Ciclo de Vida ---
 
 onMounted(async () => { // [cite: 239]
+  
     await loadInitialData(); // [cite: 240]
 });
 
@@ -201,6 +201,7 @@ const loadInitialData = async () => { // [cite: 240]
     isLoading.value = true; // [cite: 241]
     username = localStorage.getItem("username") || ""; // [cite: 241]
     let user = JSON.parse(localStorage.getItem('user') || '{}'); // [cite: 241]
+   
     if (!user || !user.codigo_sie) { // [cite: 242]
         isLoading.value = false; // [cite: 242]
         toast.error('Usuario no válido o sin SIE asignado.', { autoClose: 3000 }); // [cite: 243]
@@ -212,7 +213,8 @@ const loadInitialData = async () => { // [cite: 240]
         // 1. Cargar datos críticos de la UE y ID de Construcción
         await findUeByCiAndCodSie(); // [cite: 244]
         constId.value = await findConstByCiAndUe(); // [cite: 245]
-        await findMiembrosByCodSie();
+       registroExiste.value= await findMiembrosByCodSie();
+
         console.info('Iniciando procesamiento de API... constId.value: ', constId.value); // [cite: 246]
 
         if (!constId.value) { // [cite: 248]
@@ -271,8 +273,7 @@ interface SavedActividad {
     // ... otros campos
 }
 
-// Asume que 'actividadTipos' y 'formatFecha' están disponibles.
-// const actividadTipos = ref<ActividadTipoItem[]>([]); 
+
 
 /**
  * Carga y mapea los tipos de actividades para los v-select.
@@ -311,8 +312,7 @@ const loadActividadTipos = async () => {
 };
 
 
-
-/**
+/*
  * Carga las actividades guardadas y las puebla en el estado del formulario 
  * utilizando el helper populateActividadesFromData.
  */
@@ -355,6 +355,10 @@ const findActividadesEjecutadas = async () => {
         toast.error('Error al buscar actividades.', { autoClose: 3000 }); 
     }
 };
+
+
+
+
 
 
 /**
@@ -690,7 +694,7 @@ const registro = async () => { // [cite: 98]
         // Recargar datos para obtener nuevos IDs y estados
         await findMiembroComision();
         await findActividadesEjecutadas(); // [cite: 108]
-  //await findMiembrosByCodSie();
+ 
     } catch (error: any) {
         console.error("Error al guardar:", error);
         toast.error(`Error al guardar: ${error.message || 'Error desconocido'}`, { autoClose: 3000 }); // [cite: 109]
@@ -719,12 +723,16 @@ const findMiembrosByCodSie = async () => {
         localStorage.setItem('existeMiembro', 'true');
         localStorage.setItem('existeMiembroTipo', 'true');
        // localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+         console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
+         return true;
       } else {
         localStorage.setItem('existeMiembro', 'false');
         localStorage.setItem('existeMiembroTipo', JSON.stringify([{ id: 0 }]));
+          console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
+           return false;
       }
-  console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
-      return true;
+      
+    
     } else {
       toast.error('No se encontró una miembro para la UE', {
         autoClose: 3000,

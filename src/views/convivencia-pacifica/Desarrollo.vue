@@ -29,24 +29,7 @@ const temaDisciplinario = ref();
 
 const miembrosComisionConstruccion = ref();
 const actividadesPromocion = ref();
-// para subir archivos
-/*const selectedFile = ref(null);
-const uploadMessage = ref('');
 
-const uploadFile = async () => {
-    if (!selectedFile.value) return;
-
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-    try{
-        const response = await axios.post('http://localhost:3000/uploud',formData, {
-            headers:{
-                'Content-Type': 'multipart/form-data'
-            }
-        })
-    }
-}
-*/
 
 // Para los v-file-input
 const selectedFilePlan = ref(null);
@@ -71,17 +54,17 @@ const form = ref({    // Datos de Unidad Educativa
      director: '',
   
     // Construcción del PCPA
-    fecha:'',// '01/07/2025',
-    registroAnterior: true,
+    fecha: '',// '01/07/2025',
+    registroAnterior: false,
 
     // Miembros de la comisión de construcción del PCPA
-    comisionSocializacionEstudiante: true,
+    comisionSocializacionEstudiante: false,
     comisionSocializacionEstudianteNombre:'',// 'Estudiante Alfa, Estudiante Beta',
-    comisionSocializacionDirector: true,
+    comisionSocializacionDirector: false,
     comisionSocializacionDirectorNombre:'',// 'Director Titular',
-    comisionSocializacionMaestro: true,
+    comisionSocializacionMaestro: false,
     comisionSocializacionMaestroNombre: '',//'Maestro A, Maestro B',
-    comisionSocializacionPadre: true,
+    comisionSocializacionPadre: false,
     comisionSocializacionPadreNombre: '',//'Padre Familia 1, Madre Familia 2',
     comisionSocializacionOtro: false,
     comisionSocializacionOtroNombre: '',
@@ -89,8 +72,8 @@ const form = ref({    // Datos de Unidad Educativa
     // Temas que aborda el Plan
     temaDerecho: false,
     temaNorma: false,
-    temaPromover: true,
-    temaPromover1: true,
+    temaPromover: false,
+    temaPromover1: false,
     temaPromover2: false,
     temaPromover3: false,
     temaPromover4: false,
@@ -99,27 +82,27 @@ const form = ref({    // Datos de Unidad Educativa
     temaPromover7: false,
     temaPromover8: false,
     temaPromover9: false,
-    temaDisciplinario: true,
-    temaDisciplinarioCorrectivo: true,
+    temaDisciplinario: false,
+    temaDisciplinarioCorrectivo: false,
     temaDisciplinarioProcedimientoMarco: false,
     temaDisciplinarioProcedimientoAlternativo: false,
     temaDisciplinarioLineamiento: false,
 
     // Miembros de la comisión que aprueba el PCPA
-    comisionAprobacionEstudiante: true,
+    comisionAprobacionEstudiante: false,
     comisionAprobacionEstudianteNombre: '',//'Representante Estudiantil A',
-    comisionAprobacionDirector: true,
+    comisionAprobacionDirector: false,
     comisionAprobacionDirectorNombre: '',//'Director Aprobador',
     comisionAprobacionMaestro: false,
     comisionAprobacionMaestroNombre: '',//'',
-    comisionAprobacionPadre: true,
+    comisionAprobacionPadre: false,
     comisionAprobacionPadreNombre: '',//'Presidente de Junta Escolar',
     comisionAprobacionOtro: false,
     comisionAprobacionOtroNombre: '',
     fechaAprobacion: '',//'01/09/2036',
-    vigenciaAprobacion: 222,
+    vigenciaAprobacion: 1,
   
-    validado: false  // Declaración jurada
+    validado: false  //false Declaración jurada
     
 
 });
@@ -127,8 +110,9 @@ const form = ref({    // Datos de Unidad Educativa
 let username= localStorage.getItem('username')
 // --- Variables de Estado Nuevas ---
 const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
-console.log('existeEnBD-readOnlyVar : ', localStorage.getItem('existeEnBD'));   
+
 const registroExiste = ref(readOnlyVar);
+console.log('registroExiste EnBD y readOnlyVar= localStorage.getItem(existeEnBD) : ', registroExiste);   
 const isLoading = ref(true);
 const storedData = localStorage.getItem('dataUE');
 let dataUE = storedData ? JSON.parse(storedData) : null;
@@ -138,37 +122,55 @@ const idUE = ref(dataUE[0].id); //   ref({ci:userData.codigo_sie , codigo_sie:us
 const isFormDisabled = ref(true); 
 const isFormDisabledFromNew = ref(true); 
 
-// -----------------------------------------------------------
-// FUNCIÓN PARA OBTENER Y FORMATEAR LA FECHA DE HOY (DD/MM/AAAA)
-// -----------------------------------------------------------
+// Usamos el hook onMounted para asegurar que la asignación ocurra 
+// después de que el componente ha sido montado.
+onMounted(async() => {
 
-const getTodayDateFormatted = () => {
-  const today = new Date();
-  
-  // Obtenemos día, mes y año
-  const day = today.getDate();
-  const month = today.getMonth() + 1; // getMonth() es base 0 (Enero=0)
-  const year = today.getFullYear();
-  
-  // Aseguramos que tengan 2 dígitos (ej. 05 en lugar de 5)
-  const formattedDay = String(day).padStart(2, '0');
-  const formattedMonth = String(month).padStart(2, '0');
-  
-  // Construimos la cadena "DD/MM/AAAA"
-  return `${formattedDay}/${formattedMonth}/${year}`;
-};
+   await findUeByCiAndCodSie ();    
+   await findConstByCiAndUe();
+    
+   console.log('localStorage.getItem(idConst) : ' , localStorage.getItem('idConst'));
+    let user = JSON.parse(localStorage.getItem('user') || '');
+    if(user && user.codigo_sie){
+        form.value.sie = user.codigo_sie;
+        findUnidadesEducativasPorDirector();
+        findMiembrosComisionConstruccion();
+        findActividadesPromocion();
+        username = localStorage.getItem('username') ;
+        
+          isLoading.value = false;
+    }
+
+
+     // Simulación: Al cargar el componente, verificamos si existe un registro.    
+    if (registroExiste.value) {
+        // Si el registro existe, precargamos un valor y mantenemos bloqueado
+      
+    } else {
+        // Si es un registro nuevo, asignamos la fecha de hoy, pero se mantiene bloqueado
+        // hasta que el usuario haga clic en "Ingresar nuevo registro"
+        isFormDisabled.value = true;
+    }
+
+}); 
 
 // Habilita el formulario para un nuevo registro. Ejemplo: limpiar campos
 const iniciarNuevoRegistro = () => {
+    form.value.fechaAprobacion= formatFecha(new Date()),// '01/07/2025',
+   form.value.fecha= formatFecha(new Date());// '01/07/2025',
+
    console.log('Ingresar nuevo registro clickeado.');
    isFormDisabled.value = false;
    isFormDisabledFromNew.value = false;
+
 };
 
 // Habilita el formulario para editar un registro existente y deshabilita el botón
 const modificarRegistro = () => {
     console.log('modificar registro .');
-    isFormDisabled.value = false;
+     findConstByCiAndUe();
+      dialogSave.value = false;       // Cierra el diálogo
+  isFormDisabled.value = false;   // Habilita los campos para edición
 };
 
 // -----------------------------------------------------------
@@ -1199,46 +1201,7 @@ const uploadFileDiagnostico = () => {
     }
 };
 
-// Usamos el hook onMounted para asegurar que la asignación ocurra 
-// después de que el componente ha sido montado.
-onMounted(async() => {
-    await findUeByCiAndCodSie ();
 
-    
-   await findConstByCiAndUe();
-    
-   console.log('localStorage.getItem(idConst) : ' , localStorage.getItem('idConst'));
-    let user = JSON.parse(localStorage.getItem('user') || '');
-    if(user && user.codigo_sie){
-        form.value.sie = user.codigo_sie;
-        findUnidadesEducativasPorDirector();
-        findMiembrosComisionConstruccion();
-        findActividadesPromocion();
-        username = localStorage.getItem('username') ;
-        
-          isLoading.value = false;
-    }
-
-
-// Simulación: Al cargar el componente, verificamos si existe un registro.
-    // En un caso real, esto sería una llamada a una API.
-    
-    // Asignamos un valor inicial para simular que existe un registro para modificar.
-   // registroExiste.value = localStorage.getItem('existeEnBD')==='true' ? true : false ; 
-    
-    if (registroExiste.value) {
-        // Si el registro existe, precargamos un valor y mantenemos bloqueado
-      
-    } else {
-        // Si es un registro nuevo, asignamos la fecha de hoy, pero se mantiene bloqueado
-        // hasta que el usuario haga clic en "Ingresar nuevo registro"
-      //  form.value.fecha = getTodayDateFormatted(); 
-        isFormDisabled.value = true;
-    }
-
-
-
-}); 
 
 const findUnidadesEducativasPorDirector = async () => {
     console.log("form.value.sie:" , form.value.sie);
@@ -1725,7 +1688,7 @@ const validateForm = () => {
     if (!form.value.fecha) validationErrors.value['fecha'] = true;
     else delete validationErrors.value['fecha'];
 
-if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = true;
+    if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = true;
     else delete validationErrors.value['fechaAprobacion'];
    //// if ( (!form.value.comisionSocializacionEstudiante && !form.value.comisionSocializacionEstudianteNombre) && (!form.value.comisionSocializacionDirector && !form.value.comisionSocializacionDirectorNombre)  && (!form.value.comisionSocializacionMaestro &&  !form.value.comisionSocializacionMaestroNombre) && (!form.value.comisionSocializacionPadre && !form.value.comisionSocializacionPadreNombre)  && (!form.value.comisionSocializacionOtro && !form.value.comisionSocializacionOtroNombre) ) validationErrors.value['comision'] = true;
    // else delete validationErrors.value['comision'];
@@ -1738,7 +1701,7 @@ if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = tru
         else delete validationErrors.value['temaPromover'];
     }
 
-//   if ( (!form.value.comisionAprobacionEstudiante && !form.value.comisionAprobacionEstudianteNombre) && (!form.value.comisionAprobacionDirector && !form.value.comisionAprobacionDirectorNombre)  && (!form.value.comisionAprobacionMaestro &&  !form.value.comisionAprobacionMaestroNombre) && (!form.value.comisionAprobacionPadre && !form.value.comisionAprobacionPadreNombre)  && (!form.value.comisionAprobacionOtro && !form.value.comisionAprobacionOtroNombre) ) validationErrors.value['comision'] = true;
+    //   if ( (!form.value.comisionAprobacionEstudiante && !form.value.comisionAprobacionEstudianteNombre) && (!form.value.comisionAprobacionDirector && !form.value.comisionAprobacionDirectorNombre)  && (!form.value.comisionAprobacionMaestro &&  !form.value.comisionAprobacionMaestroNombre) && (!form.value.comisionAprobacionPadre && !form.value.comisionAprobacionPadreNombre)  && (!form.value.comisionAprobacionOtro && !form.value.comisionAprobacionOtroNombre) ) validationErrors.value['comision'] = true;
   // else delete validationErrors.value['comisionAprobacion'];
 
 
@@ -1750,6 +1713,44 @@ if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = tru
    
     return !Object.keys(validationErrors.value).length;
 };
+
+/**
+ * Helper para formatear fecha de 'YYYY-MM-DD...' a 'DD/MM/YYYY'
+ */
+function formatFecha(fecha) {
+
+    // Obtenemos día, mes y año
+  const day = fecha.getDate();
+  const month = fecha.getMonth() + 1; // getMonth() es base 0 (Enero=0)
+  const year = fecha.getFullYear();
+  
+  // Aseguramos que tengan 2 dígitos (ej. 05 en lugar de 5)
+  const formattedDay = String(day).padStart(2, '0');
+  const formattedMonth = String(month).padStart(2, '0');
+  
+  // Construimos la cadena "DD/MM/AAAA"
+  return `${formattedDay}/${formattedMonth}/${year}`; 
+
+}
+// para subir archivos
+/*const selectedFile = ref(null);
+const uploadMessage = ref('');
+
+const uploadFile = async () => {
+    if (!selectedFile.value) return;
+
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    try{
+        const response = await axios.post('http://localhost:3000/uploud',formData, {
+            headers:{
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+    }
+}
+*/
+
 
 
 </script>
@@ -2012,11 +2013,15 @@ if (!form.value.fechaAprobacion) validationErrors.value['fechaAprobacion'] = tru
     <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
             <v-card-title class="text-h5">Mensaje</v-card-title>
-            <v-card-text>Registro guardado. ¿Ingresar uno nuevo o modificar el actual?</v-card-text>
+                <v-card-text>
+                Registro guardado correctamente.  
+                ¿Desea modificar el registro actual o salir del formulario?
+                </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">MODIFICAR REGISTRO</v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset">NUEVO REGISTRO</v-btn>
+                <v-btn color="blue-lighten-2" variant="text" @click="modificarRegistro">MODIFICAR REGISTRO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">SALIR</v-btn>   
+               
             </v-card-actions>
         </v-card>
     </v-dialog>
