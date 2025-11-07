@@ -157,7 +157,8 @@ const loadInitialData = async () => {
             await findUeByCiAndCodSie(); // Establece `idUE` internamente
             
             constId.value = await findConstByCiAndUe(); // // [cite: 13]
-            
+                        // El estado de 'isFormDisabled' y 'registroExiste'
+            // es manejado por las funciones de carga (findAccionesEjecucion, etc.)
             if (!constId.value) { // // [cite: 13]
                 toast.warn('No se encontró registro de construcción PCPA. No se puede cargar ni guardar indicadores.', { autoClose: 4000 });
                 isLoading.value = false;
@@ -179,10 +180,7 @@ const loadInitialData = async () => {
             console.error("Error al cargar datos iniciales:", error); // [cite: 17]
             toast.error('Error al cargar datos iniciales.', { autoClose: 3000 }); // [cite: 18]
         } finally {
-            isLoading.value = false; // [cite: 18]
-            // El estado de 'isFormDisabled' y 'registroExiste'
-            // es manejado por las funciones de carga (findAccionesEjecucion, etc.)
-            // // [cite: 19, 20]
+            isLoading.value = false; 
         }
     } else {
         isLoading.value = false; // [cite: 21]
@@ -612,6 +610,14 @@ const validateForm = (): boolean => {
     }
     if (!form.value.fecha || form.value.fecha.length !== 10) validationErrors.value['fecha'] = true; // [cite: 93]
     
+     Object.keys(validationErrors.value).forEach(key => {
+            if (validationErrors.value[key] === true) {
+                console.log(`Campo ${key} sin dato ingresado : vacio= `, validationErrors.value[key]);
+                toast.error(`Campo ${key} sin dato ingresado`, { 
+                autoClose: 3500,    position: toast.POSITION.TOP_RIGHT,  });
+            } 
+        });
+
     return Object.keys(validationErrors.value).length === 0; // [cite: 93]
 };
 
@@ -686,9 +692,6 @@ const onDateInput = (cleanedInput: string): string => {
 
 </script>
 
-
-
-
 <template>
     <v-row>    
         <v-col cols="12" lg="12" sm="12">
@@ -702,10 +705,11 @@ const onDateInput = (cleanedInput: string): string => {
                             <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
                                 Ingresar nuevo registro
                             </v-btn>
-
+<div class="mt-2 text-caption">__registroExiste: {{ registroExiste }}</div>
                             <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
                                 Modificar registro
                             </v-btn>
+<div class="mt-2 text-caption">__isFormDisabled: {{ isFormDisabled }}</div>  
                             </div>
 
 
@@ -826,14 +830,16 @@ const onDateInput = (cleanedInput: string): string => {
                                 
     <v-dialog v-model="dialogSave" persistent width="auto" >
         <v-card>
-            <v-card-title class="text-h5">
-            Mensaje
-            </v-card-title>
-            <v-card-text>¿ Nuevo registro ? (Si ya añadió el registro y quiere modificarlo escoja NO)</v-card-text>
+            <v-card-title class="text-h5">Mensaje</v-card-title>
+                <v-card-text>
+                Registro guardado correctamente .<br> 
+                ¿Desea modificar el registro actual o salir del formulario?
+                </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica')"> NO </v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset"> SI </v-btn>
+                <v-btn color="blue-lighten-2" variant="text" @click="modificarRegistro">MODIFICAR REGISTRO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica/seguimiento')">SALIR</v-btn>   
+               
             </v-card-actions>
         </v-card>
     </v-dialog>

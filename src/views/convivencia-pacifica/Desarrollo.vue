@@ -110,8 +110,7 @@ const form = ref({    // Datos de Unidad Educativa
 let username= localStorage.getItem('username')
 // --- Variables de Estado Nuevas ---
 const readOnlyVar = ref( localStorage.getItem('existeEnBD')==='true' ? true : false  );
-
-const registroExiste = ref(readOnlyVar);
+const registroExiste = ref(readOnlyVar);  //  const registroExiste = ref(localStorage.getItem('existeMiembro') === 'true'); 
 console.log('registroExiste EnBD y readOnlyVar= localStorage.getItem(existeEnBD) : ', registroExiste);   
 const isLoading = ref(true);
 const storedData = localStorage.getItem('dataUE');
@@ -316,7 +315,7 @@ const createRec = async () => {
         13:{status:  form.value.temaDisciplinarioLineamiento,id: form.value.id_temaDisciplinarioLineamiento}
     };
     
-    // --- Guardado Payload 1 (Unidad Educativa) ---
+    // --- Guardado Payload 1 (crear Unidad Educativa) ---
     const payload1 = { //[   : 213]
         cod_ue: form.value.sie,
         desc_ue: form.value.unidadEducativa, 
@@ -358,7 +357,7 @@ const createRec = async () => {
     }
     console.log("save1", save1); //[   : 218]
 
-    // --- Guardado Payload 2 (Construcción) ---
+    // --- Guardado Payload 2 (createContruccion) ---
     const dateParts = (form.value.fecha || '').split("/"); //[   : 218]
     const dateParts2 = (form.value.fechaAprobacion || '').split("/"); //[   : 218]
     const payload2 = { //[   : 219]
@@ -399,7 +398,7 @@ const createRec = async () => {
     await procesarMiembros(comisionConstruccion.value, save2.data.id, 1, ConvivenciaPacifica.createMiembroComision);
     console.log("fin bucle save3"); //[   : 241]
 
-    // --- Guardado Payload 4 (Temas Nivel 1) ---
+    // --- Guardado Payload 4 (Temas Nivel 1) createTarea---
     console.log("ini bucle save4 (Temas Nivel 1)"); //[   : 241]
     const promesasSave4 = [];
     Object.keys(tema.value).map((item, key) => { //[   : 242]
@@ -611,18 +610,7 @@ const update = async () => {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-const findMiembrosByCodSie = async () => {
+const xxfindMiembrosByCodSie = async () => {
   try {
     form.value.codSie = localStorage.getItem('codigo_sie') || '';
 
@@ -1023,9 +1011,7 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
                             });*/
                         } else {
                             toast.error(`Registro ${idParaActualizar} no modificado (Status: ${res.status})`, { 
-                                autoClose: 3500,
-                                position: toast.POSITION.TOP_RIGHT, 
-                            });
+                                autoClose: 3500,    position: toast.POSITION.TOP_RIGHT,  });
                         }
                         
                         console.log(`fin bucle save4 (ID: ${idParaActualizar}), respuesta:`, res);
@@ -1132,15 +1118,6 @@ const procesarResultadosAPI = async (resultadoFinal)=>{
 };
 
 
-/*    // --- EJEMPLO DE CÓMO LLAMAR A LA FUNCIÓN ---
-// (Esto es solo para demostrar, 'resultadoFinal' vendría de tu otra función)
-const resultadoDePrueba = [
-  { id_actividades_promocion: 7879, check_actividad_tipo: true , id:7879, status:true, estado: 'ACTIVO' },
-  { id_actividades_promocion: 'null', check_actividad_tipo: 'null', id:7882, status:true, estado: 'NUEVO' },
-  { id_actividades_promocion: 7881, check_actividad_tipo: false, id:'null', status:true, estado: 'INACTIVAR' }
-];
-
-*/
 
 function mapearTemasPromover(formData) {
     // Mapeo de los checkboxes de temas promover
@@ -1358,110 +1335,6 @@ const findMiembrosComisionConstruccion = async () => {
     }
 };
 
-
-const xxxfindMiembrosComisionConstruccion = async () => {
-    console.log(form.value.sie);
- if(String(form.value.sie).length === 8){
-    const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.sie);
-    console.log("findMiembrosComisionConstruccion res: ", res);
-
-    res.data.map((data: {  id_comision_tipo: number; id_miembro_tipo: number; 
-                        }, index:  number) => {
-             form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion    
-          
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===1  ){// estudiante
-            //       console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionEstudianteNombre= res.data[index].nombres_miembro ; 
-         
-            form.value.comisionSocializacionEstudianteId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===1  ){// director
-               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionDirectorNombre= res.data[index].nombres_miembro  ;   
-           // form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionDirectorId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===1  ){// maestro
-                 //  console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionMaestroNombre= res.data[index].nombres_miembro  ;  
-          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionMaestroId= res.data[index].id_miembro  ;   
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===1  ){// padres
-                 //  console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionPadreNombre= res.data[index].nombres_miembro  ;      
-          //  form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionPadreId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===1  ){// otro
-               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionSocializacionOtroNombre= res.data[index].nombres_miembro  ;    
-         //   form.value.comisionSocializacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionSocializacionOtroId= res.data[index].id_miembro  ; 
-        }
-     //  console.log(res.data[index]);
-
-       if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===1 && data.id_comision_tipo===2  ){// estudiante
-               //    console.log("res.data[index].id_miembro : ", res.data[index].id_miembro  )
-            form.value.comisionAprobacionEstudianteNombre= res.data[index].nombres_miembro ; 
-            //form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionEstudianteId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===2 && data.id_comision_tipo===2  ){// director
-            //       console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionDirectorNombre= res.data[index].nombres_miembro  ;   
-           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionDirectorId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===3 && data.id_comision_tipo===2  ){// maestro
-               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionMaestroNombre= res.data[index].nombres_miembro  ;  
-          //  form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionMaestroId= res.data[index].id_miembro  ;   
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===4 && data.id_comision_tipo===2  ){// padres
-               //    console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionPadreNombre= res.data[index].nombres_miembro  ;      
-           // form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionPadreId= res.data[index].id_miembro  ; 
-        }
-        if(res.data && res.data.length > 0 &&  data.id_miembro_tipo ===5 && data.id_comision_tipo===2  ){// otro
-             //      console.log("id_miembro_tipo: ", data.id_miembro_tipo  )
-            form.value.comisionAprobacionOtroNombre= res.data[index].nombres_miembro  ;    
-         //   form.value.comisionAprobacionIdConstruccion= res.data[index].id  ;  //id_pcpa_construccion
-            form.value.comisionAprobacionOtroId= res.data[index].id_miembro  ; 
-        }
-      // console.log(res.data[index]);
-
-    
-    });
-
-    if(res.data && res.data.length > 0){
-        let dateParts = ( res.data[0].fecha_registro || '').split("T");    //const dateParts2 = new Date(dateParts[2] +'-'+ dateParts[1] +'-'+ dateParts[0]).toISOString()
-        dateParts = ( dateParts[0] ).split("-"); 
-        form.value.fecha =  dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
-
-        dateParts = ( res.data[0].fecha_aprobacion || '').split("T"); 
-        dateParts = ( dateParts[0]).split("-"); 
-        form.value.fechaAprobacion=    dateParts[2] +'/'+ dateParts[1] +'/'+ dateParts[0];
-        form.value.vigenciaAprobacion=  res.data[0].vigencia_aprobacion;
-        form.value.registroAnterior=   res.data[0].check_diagnostico_pcpa;
-    }
-       miembrosComisionConstruccion.value = res.data[0];           
-        
-  } else {
-        miembrosComisionConstruccion.value = null;
-        find.value = false;
-        form.value.departamentoId = null;
-        form.value.departamentoNombre = '';
-        form.value.municipioId = null;
-        form.value.municipioNombre = '';
-        form.value.unidadEducativa = '';
-        form.value.nivel = '';
-        form.value.modalidad = '';
-        form.value.director = '';
-    }
-}; 
 
 const findActividadesPromocion = async () => {
     console.log('form.value.sie : ', form.value.sie);
@@ -1711,6 +1584,13 @@ const validateForm = () => {
     if (!form.value.validado) validationErrors.value['validado'] = true;
     else delete validationErrors.value['validado'];
    
+     Object.keys(validationErrors.value).forEach(key => {
+            if (validationErrors.value[key] === true) {
+                console.log(`Campo ${key} sin dato ingresado : vacio= `, validationErrors.value[key]);
+                toast.error(`Campo ${key} sin dato ingresado`, { 
+                autoClose: 3500,    position: toast.POSITION.TOP_RIGHT,  });
+            } 
+        });
     return !Object.keys(validationErrors.value).length;
 };
 
@@ -1769,10 +1649,11 @@ const uploadFile = async () => {
                             <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
                                 Ingresar nuevo registro
                             </v-btn>
-
+<div class="mt-2 text-caption">__registroExiste: {{ registroExiste }}</div>
                             <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
                                 Modificar registro
                             </v-btn>
+<div class="mt-2 text-caption">__isFormDisabled: {{ isFormDisabled }}</div>  
                         </div>
                     </div>
 
@@ -2014,7 +1895,7 @@ const uploadFile = async () => {
         <v-card>
             <v-card-title class="text-h5">Mensaje</v-card-title>
                 <v-card-text>
-                Registro guardado correctamente.  
+                Registro guardado correctamente.<br>  
                 ¿Desea modificar el registro actual o salir del formulario?
                 </v-card-text>
             <v-card-actions>

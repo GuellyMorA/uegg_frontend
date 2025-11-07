@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted,watch } from 'vue';
 import { useRouter } from "vue-router";
 import { toast } from 'vue3-toastify'; // [cite: 203]
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica'; // [cite: 203]
@@ -7,20 +7,18 @@ import Auth from '@/services/Auth'; // [cite: 203]
 
 // --- Tipos y Constantes ---
 
-// IDs de Tipos de Comisión (de la BD) // [cite: 204]
-const TIPO_COMISION_SOCIALIZACION = 3; // [cite: 205]
-const TIPO_COMISION_IMPLEMENTACION = 4; // [cite: 205]
+// IDs de Tipos de Comisión (de la BD) 
+const TIPO_COMISION_SOCIALIZACION = 3; 
+const TIPO_COMISION_IMPLEMENTACION = 4; 
 
-// IDs de Tipos de Miembro (de la BD) // [cite: 205]
-const MIEMBRO_TIPO_MAP = { // [cite: 205]
+// IDs de Tipos de Miembro (de la BD) 
+const MIEMBRO_TIPO_MAP = { 
     Estudiante: 1,
     Director: 2,
     Maestro: 3,
     Padre: 4,
     Otro: 5,
 };
-
-
 
 // Mapa de tipos de actividad (se llena dinámicamente desde la BD)
 let ACTIVIDAD_TIPO_MAP: Record<string, number> = {};
@@ -38,7 +36,7 @@ interface ActividadTipoItem { // [cite: 208]
 /**
  * Define la estructura de un miembro de comisión en el estado.
  */
-interface MiembroComision { // [cite: 210]
+interface MiembroComision { 
     key: string; // 'Estudiante', 'Director', etc.
     tipoId: number; // [cite: 211]
     status: boolean; // El v-checkbox
@@ -165,7 +163,7 @@ const actividadTipos = ref<ActividadTipoItem[]>([]);
 
 // Estado de la UI // [cite: 234]
 const registroExiste = ref(localStorage.getItem('existeMiembro') === 'true'); // [cite: 234]
-const isFormDisabled = ref(true); // [cite: 234]
+const isFormDisabled = ref(!registroExiste.value); // [cite: 234]
 const isFormDisabledFromNew = ref(true); // [cite: 235]
 //const existeMiembro  = ref(localStorage.getItem('existeMiembro') === 'true'); // [cite: 234]
 
@@ -214,13 +212,14 @@ const loadInitialData = async () => { // [cite: 240]
         await findUeByCiAndCodSie(); // [cite: 244]
         constId.value = await findConstByCiAndUe(); // [cite: 245]
        registroExiste.value= await findMiembrosByCodSie();
-
-        console.info('Iniciando procesamiento de API... constId.value: ', constId.value); // [cite: 246]
+       //isFormDisabled.value= registroExiste.value;
+        console.info('Iniciando procesamiento de API... constId.value: ', constId.value); 
+       console.info('Iniciando procesamiento de API...  registroExiste.value: ', registroExiste.value); 
 
         if (!constId.value) { // [cite: 248]
             toast.warn('No se encontró registro de construcción PCPA. No se puede cargar ni guardar.', { autoClose: 4000 }); // [cite: 248]
             isLoading.value = false; // [cite: 249]
-            isFormDisabled.value = true; // [cite: 249]
+          //  isFormDisabled.value = true; // [cite: 249]
             isFormDisabledFromNew.value = true; // [cite: 249]
             return; // [cite: 250]
         }
@@ -237,10 +236,10 @@ const loadInitialData = async () => { // [cite: 240]
 
         // 4. Ajustar estado de la UI // [cite: 252]
         if (registroExiste.value) { // [cite: 252]
-            isFormDisabled.value = true; // [cite: 252]
+            isFormDisabled.value = false; // [cite: 252]
             isFormDisabledFromNew.value = true; // [cite: 253]
         } else {
-            isFormDisabled.value = false; // [cite: 253]
+            isFormDisabled.value = true; // [cite: 253]
             isFormDisabledFromNew.value = false; // [cite: 254]
         }
 
@@ -327,8 +326,8 @@ const findActividadesEjecutadas = async () => {
         if (res.data && res.data.length > 0) {
             
             // 1. Marcar que el registro existe para inhabilitar campos (si aplica)
-            registroExiste.value = true;
-            isFormDisabled.value = true; // Agregado para mantener coherencia con el helper
+          //  registroExiste.value = true;
+           // isFormDisabled.value = true; // Agregado para mantener coherencia con el helper
 
             console.log('findActividadesEjecutadas...data: ', res.data); 
             
@@ -376,8 +375,8 @@ const populateActividadesFromData = (
 
     // 1. Establecer el estado del formulario como "registro existente"
     if (!registroExiste.value) {
-        registroExiste.value = true;
-        isFormDisabled.value = true;
+     //   registroExiste.value = true;
+      //  isFormDisabled.value = true;
     }
 
     // 2. Inicializar el contenedor para guardar los PKs
@@ -624,7 +623,7 @@ const findConstByCiAndUe = async (): Promise<number | null> => { // [cite: 120]
  * Función principal de guardado.
  */
 const registro = async () => { // [cite: 98]
-    console.log(`Iniciando guardado (Existe: ${registroExiste.value})`);
+    console.log(`Iniciando guardado (registroExiste: ${registroExiste.value})`);
     if (!validateForm()) { // [cite: 99]
         dialog.value = false;
         toast.info('Debe ingresar los datos requeridos', { autoClose: 3000 }); // [cite: 100]
@@ -632,8 +631,8 @@ const registro = async () => { // [cite: 98]
     }
 
    
-      isLoading.value = true;
-    isFormDisabled.value = true;
+     //     isLoading.value = true;
+    ///   isFormDisabled.value = true;
     // Asumo que esta variable también existe
     if (isFormDisabledFromNew) isFormDisabledFromNew.value = true;// Deshabilitar todo al guardar
 
@@ -649,20 +648,20 @@ const registro = async () => { // [cite: 98]
 
         // Construir Miembros de Socialización
         const socializacionMiembros = [
-            { tipoId: 1, status: form.value.comisionSocializacionEstudiante, value: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
-            { tipoId: 2, status: form.value.comisionSocializacionDirector, value: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId },
-            { tipoId: 3, status: form.value.comisionSocializacionMaestro, value: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId },
-            { tipoId: 4, status: form.value.comisionSocializacionPadre, value: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId },
-            { tipoId: 5, status: form.value.comisionSocializacionOtro, value: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId }
+            { tipoId: 1, status: form.value.comisionSocializacionEstudiante, nombre: form.value.comisionSocializacionEstudianteNombre, id: form.value.comisionSocializacionEstudianteId },
+            { tipoId: 2, status: form.value.comisionSocializacionDirector, nombre: form.value.comisionSocializacionDirectorNombre, id: form.value.comisionSocializacionDirectorId },
+            { tipoId: 3, status: form.value.comisionSocializacionMaestro, nombre: form.value.comisionSocializacionMaestroNombre, id: form.value.comisionSocializacionMaestroId },
+            { tipoId: 4, status: form.value.comisionSocializacionPadre, nombre: form.value.comisionSocializacionPadreNombre, id: form.value.comisionSocializacionPadreId },
+            { tipoId: 5, status: form.value.comisionSocializacionOtro, nombre: form.value.comisionSocializacionOtroNombre, id: form.value.comisionSocializacionOtroId }
         ]; //[cite: 94-95]
 
         // Construir Miembros de Implementación
         const implementacionMiembros = [
-            { tipoId: 1, status: form.value.comisionImplementacionEstudiante, value: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId },
-            { tipoId: 2, status: form.value.comisionImplementacionDirector, value: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId },
-            { tipoId: 3, status: form.value.comisionImplementacionMaestro, value: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId },
-            { tipoId: 4, status: form.value.comisionImplementacionPadre, value: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId },
-            { tipoId: 5, status: form.value.comisionImplementacionOtro, value: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId }
+            { tipoId: 1, status: form.value.comisionImplementacionEstudiante, nombre: form.value.comisionImplementacionEstudianteNombre, id: form.value.comisionImplementacionEstudianteId },
+            { tipoId: 2, status: form.value.comisionImplementacionDirector, nombre: form.value.comisionImplementacionDirectorNombre, id: form.value.comisionImplementacionDirectorId },
+            { tipoId: 3, status: form.value.comisionImplementacionMaestro, nombre: form.value.comisionImplementacionMaestroNombre, id: form.value.comisionImplementacionMaestroId },
+            { tipoId: 4, status: form.value.comisionImplementacionPadre, nombre: form.value.comisionImplementacionPadreNombre, id: form.value.comisionImplementacionPadreId },
+            { tipoId: 5, status: form.value.comisionImplementacionOtro, nombre: form.value.comisionImplementacionOtroNombre, id: form.value.comisionImplementacionOtroId }
         ]; //[cite: 95]
 
         // ¡Corrección clave!
@@ -691,6 +690,7 @@ const registro = async () => { // [cite: 98]
         dialogSave.value = true;
       //  registroExiste.value = true; // El registro ahora existe
            localStorage.setItem('existeEnBD', 'true')
+             console.info("fin del  guardar.  existeEnBD:",  localStorage.getItem('existeEnBD'));
         // Recargar datos para obtener nuevos IDs y estados
         await findMiembroComision();
         await findActividadesEjecutadas(); // [cite: 108]
@@ -764,12 +764,12 @@ const syncComisionMiembros = async (miembros: MiembroComision[], comisionTipoId:
             id_pcpa_comision_tipo: comisionTipoId,
             id_pcpa_miembro_tipo: member.tipoId,
             orden: index + 1,
-            nombres_miembro: member.nombre || '', // [cite: 74-75]
+            nombres_miembro: member.nombre || '', // nombre
             apellidos_miembro: '',
             check_miembro_comision: member.status,
         };
 
-        if (member.status && member.nombre) { // [cite: 76]
+        if (member.status && member.nombre) { // 
             // Si tiene estado y valor, es una creación o actualización
             if (member.id) {
                 // Actualizar
@@ -895,6 +895,13 @@ const modificarRegistro = () => { // [cite: 17]
     // isFormDisabledFromNew se mantiene 'true', deshabilitando "Comisiones"
 };
 
+
+const recargarPagina = () => { // [cite: 17]
+    console.log('recargarPagina .');
+    isFormDisabled.value = false; // Habilita "Actividades" y "Registrar"
+    // isFormDisabledFromNew se mantiene 'true', deshabilitando "Comisiones"
+   window.location.href = '/convivencia/pacifica/socializacion'; // router.push('/convivencia/pacifica/socializacion');
+};
 /**
  * Valida el formulario antes de guardar.
  */
@@ -940,7 +947,13 @@ const validateForm = (): boolean => {
             validationErrors.value[key] = true;
         }
     });
-
+        Object.keys(validationErrors.value).forEach(key => {
+            if (validationErrors.value[key] === true) {
+                console.log(`Campo ${key} sin dato ingresado : vacio= `, validationErrors.value[key]);
+                toast.error(`Campo ${key} sin dato ingresado`, { 
+                autoClose: 3500,    position: toast.POSITION.TOP_RIGHT,  });
+            } 
+        });
     return Object.keys(validationErrors.value).length === 0;
 };
 
@@ -964,7 +977,7 @@ const reset = () => { // [cite: 64]
     };
 
     dialogSave.value = false;
-    registroExiste.value = false;
+   // registroExiste.value = false;
 };
 
 
@@ -1052,6 +1065,22 @@ const onDateInput = (event: any) => {
   }
 };
 
+watch(() => registroExiste.value, (nuevoValor) => {
+  console.log('registroExiste cambió a:', nuevoValor);
+  
+});
+watch(
+  () => ({
+    registroExiste: registroExiste.value,
+    isFormDisabled: isFormDisabled.value
+  }),
+  (nuevosValores) => {
+    console.log('Valores actuales:');
+    console.log('- registroExiste:', nuevosValores.registroExiste);
+    console.log('- isFormDisabled:', nuevosValores.isFormDisabled);
+  },
+  { deep: true } // Necesario cuando se watchea un objeto
+);
 </script>
 
 
@@ -1065,13 +1094,14 @@ const onDateInput = (event: any) => {
                            <div class="d-flex align-center">
                             <v-progress-circular v-if="isLoading" indeterminate color="primary" size="24" class="mr-4"></v-progress-circular>
                             
-                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="!isFormDisabled" flat>
+                            <v-btn v-if="!registroExiste && !isLoading" color="primary" class="ml-2" @click="iniciarNuevoRegistro" :disabled="registroExiste" flat>
                                 Ingresar nuevo registro
                             </v-btn>
-
-                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!isFormDisabled" flat>
+<div class="mt-2 text-caption">__registroExiste: {{ registroExiste }}</div>
+                            <v-btn v-if="registroExiste && !isLoading" color="info" class="ml-2" @click="modificarRegistro" :disabled="!registroExiste" flat>
                                 Modificar registro
                             </v-btn>
+<div class="mt-2 text-caption">__ !isFormDisabled: {{ !isFormDisabled }}</div>                            
                             </div>
 
 
@@ -1283,11 +1313,15 @@ const onDateInput = (event: any) => {
     <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
             <v-card-title class="text-h5">Mensaje</v-card-title>
-            <v-card-text>Registro guardado. ¿Ingresar uno nuevo o modificar el actual?</v-card-text>
+                <v-card-text>
+                Registro guardado correctamente.<br>  
+                ¿Desea modificar el registro actual o salir del formulario?
+                </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="red-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">MODIFICAR REGISTRO</v-btn>
-                <v-btn color="green-darken-1" variant="text" @click="reset">NUEVO REGISTRO</v-btn>
+                <v-btn color="blue-lighten-2" variant="text" @click="recargarPagina">MODIFICAR REGISTRO</v-btn>
+                <v-btn color="green-darken-1" variant="text" @click="router.push('/convivencia/pacifica')">SALIR</v-btn>   
+               
             </v-card-actions>
         </v-card>
     </v-dialog>
