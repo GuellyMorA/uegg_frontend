@@ -1,5 +1,6 @@
 import http from 'axios';
 import http2 from 'axios';
+import { toast } from 'vue3-toastify';
 const apiUrl = import.meta.env;
 
 class AuthService {
@@ -54,7 +55,7 @@ class AuthService {
       });
   }
 
-    listUnidadesEducativasPorDirector(data) {
+  listUnidadesEducativasPorDirector(data) {
       console.log("Datos enviados DIRECTOR: ", data); // <-- Imprime el valor del formulario
       return http2({
         method: 'get',
@@ -76,7 +77,10 @@ class AuthService {
         console.error("Error durante la autenticación DIRECTOR UE:", error); // <-- Imprime el error si ocurre
         return error;
       });
-    }
+  }
+
+
+
  
   }
   

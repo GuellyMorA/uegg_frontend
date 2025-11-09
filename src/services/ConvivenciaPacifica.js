@@ -1,21 +1,93 @@
 import http from 'axios';
 import http2 from 'axios';
+import { toast } from 'vue3-toastify';
+
 const apiUrl = import.meta.env;
 
 class ConvivenciaPacificaService {
-     
+
+  findIdConstByCiAndUe(data){  // en back 
+    return  http.get(`/ueggPcpaConstruccion/ci/${data.username}/idUE/${data.idUE}`,).catch((error) => {
+        return error;
+    });
+  }
+
+
+ // devuelve el ID de Construcción. 
+  findIdConstByCiAndUeSetVariables = async (payload) => { 
+    
+      try {    
+          const res = await this.findIdConstByCiAndUe(payload); //   22]
+
+          if (res.status === 200 && res.data && res.data.length > 0) { //   23]
+              if (res.data.length === 1) {
+                  localStorage.setItem('idConst', res.data[0].id);
+                  console.log('findIdConstByCiAndUe -> localStorage.getItem(idConst) : ',res.data[0].id );  
+                  return res.data[0].id; // Retorna el ID de Construcción.
+              } else {
+                  localStorage.setItem('findIdConstByCiAndUe -> localStorage.getItem(idConst) : ', '0');
+                  toast.warn('Se encontraron múltiples o ninguna construcción para esta UE.', { autoClose: 3500 }); //   26]
+                  return 0;
+              }
+          } else {
+              toast.error('No se encontró una construcción para la UE', { autoClose: 3500 }); //   27]
+              return 0;
+          }
+      } catch (error) {
+          console.error("Error en findIdConstByCiAndUeSetVariables. No se encontró una construcción para la UE:", error);
+          toast.error('Error en findIdConstByCiAndUeSetVariables. No se encontró una construcción para la UE', { autoClose: 3500 }); //   29]
+          return null;
+      }
+  };
+
+
   findUeByCiAndCodSie(data){  // en back  getByCiAndCodSie  -->  ueggPcpaUnidadEducativa/ci/:ci/codSie/:codSie
     return  http.get(`/ueggPcpaUnidadEducativa/ci/${data.username}/codSie/${data.codSie}`,).catch((error) => {
         return error;
     });
-
   }
-  findConstByCiAndUe(data){  // en back 
-    return  http.get(`/ueggPcpaConstruccion/ci/${data.username}/idUE/${data.idUE}`,).catch((error) => {
-        return error;
-    });
+  //devuelve el idUE desde uegg_pcpa_unidad_educativa  ---
+  findUeByCiAndCodSieSetVariables = async (payload) => {
+  try {
+   //   Usamos 'this' para acceder al otro método
+        const res = await this.findUeByCiAndCodSie(payload);
+        console.log('Respuesta de findUeByCiAndCodSie →', res);
 
+        if (res.status === 200 && res.data && res.data.length >= 1) { // [cite: 113-114]
+        localStorage.setItem('existeEnBD', 'true');
+        console.log('existeEnBD →', 'true');
+        localStorage.setItem('dataUE', JSON.stringify(res.data));
+
+        const storedData = localStorage.getItem('dataUE');
+        let dataUE = storedData ? JSON.parse(storedData) : null;
+        //const idUE = ref(dataUE[0].id); //   ref({ci:userData.codigo_sie , codigo_sie:userData.codigo_sie } );// Usar el SIE del usuario logueado
+        localStorage.setItem('idUE', JSON.stringify(dataUE[0].id));
+        console.log('idUE →', localStorage.getItem('idUE'));
+          console.log('findUeByCiAndCodSie -> localStorage.getItem(idUE) : ',res.data[0].id );  
+        return res.data[0].id;
+
+      } else {
+        localStorage.setItem('existeEnBD', 'false');
+        console.log('existeEnBD →','false');
+        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
+
+        localStorage.setItem('idUE', '0');
+        console.log('No se encontró una UE en findUeByCiAndCodSie -> localStorage.getItem(idUE) :','0');
+
+        toast.error('No se encontró una UE registrada en base de datos local para el Director', {
+        autoClose: 5000,    position: toast.POSITION.TOP_RIGHT,   });
+        
+         return 0;
+    }
+
+  } catch (error) {
+    console.error('❌ Error en findUeByCiAndCodSieSetVariables. No se encontró una UE registrada en base de datos local para el Director:', error);
+    toast.error('❌  Error en findUeByCiAndCodSieSetVariables. No se encontró una UE registrada en base de datos local para el Director', {
+                autoClose: 3000,      position: toast.POSITION.TOP_RIGHT,    });
+
+    return 0;
   }
+  };
 
   
   getContruccionUnidadEducativa(data){
@@ -30,6 +102,7 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
+  
   updateContruccion(id,data) {
     return http2({
       method:'put',
@@ -47,17 +120,18 @@ class ConvivenciaPacificaService {
     });
   }
 
-  deleteConstruccionxxx(id){
+  xxxdeleteConstruccion(id){
     return http.put(`/ueggPcpaConstruccionDel/${id}`).catch((error) => {
         return error;
     });
   } 
 
-  create(data){//  ueggPcpaUnidadEducativa
+  createUnidadEducativa(data){//  ueggPcpaUnidadEducativa
     return http.post(`/ueggPcpaUnidadEducativa`, data).catch((error) => {
         return error.response;
     });
   }
+
   updateUnidadEducativa(id,data) {
     return http2({
       method:'put',
@@ -81,6 +155,7 @@ class ConvivenciaPacificaService {
         return error;
     });
   } 
+
   updateMiembroComision(id,data) {
     return http2({
       method:'put',
@@ -115,6 +190,49 @@ class ConvivenciaPacificaService {
     });
 
   }
+
+  findMiembrosByCodSieSetVariables = async (codSie) => {
+    try {
+
+      const res = await this.findMiembrosComisionConstruccion(codSie);
+      console.log('Respuesta de listMiembrosComision →', res);
+
+      if (res.status === 200 && res.data && res.data.length > 0) { //   23]
+          if (res.data.length === 1) {
+              localStorage.setItem('existeMiembro', 'true');
+              localStorage.setItem('existeMiembroTipo', 'true');        
+              console.log('findMiembrosByCodSie -> existeMiembro : ', localStorage.getItem('existeMiembro'));  
+              return true;
+        } else {
+          localStorage.setItem('existeMiembro', 'false');
+          localStorage.setItem('existeMiembroTipo', JSON.stringify([{ id: 0 }]));
+          console.log('No se encontró miembros en findMiembrosByCodSie -> existeMiembro : ', localStorage.getItem('existeMiembro'));  
+          
+          return false;
+        }
+        
+      
+      } else {
+        toast.error('No se encontró una miembro para la UE', {
+          autoClose: 3000,
+          position: toast.POSITION.TOP_RIGHT,
+        });
+        return false;
+      }
+
+    } catch (error) {
+      console.error('❌ Error en findMiembrosByCodSie. No se encontró miembros en findMiembrosByCodSie:', error);
+      toast.error('❌ Error en findMiembrosByCodSie. No se encontró miembros en findMiembrosByCodSie', {
+        autoClose: 3000,
+        position: toast.POSITION.TOP_RIGHT,
+      });
+      return false;
+    }
+  };
+
+
+
+
 
   createTarea(data){
     return http.post(`/ueggPcpaActividadesPromocion`, data).catch((error) => {

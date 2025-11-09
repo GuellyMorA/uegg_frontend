@@ -9,7 +9,7 @@ import ProductCards from "@/components/dashboards/ProductCards.vue";
 import axios from "axios";
 
 onMounted(async() => {
-    console.log("data..........+++++++++");
+    console.log("onMounted  en index.vue  esta vacio ..........+++++++++");
     // const items = await axios.get('item').then(data => {
     //     console.log(data.data);
     // })

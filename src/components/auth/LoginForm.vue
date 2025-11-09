@@ -2,28 +2,25 @@
 import { ref } from 'vue';
 import { toast } from 'vue3-toastify';
 import ConvivenciaPacifica from '@/services/ConvivenciaPacifica';
-// **ASUME que este servicio puede manejar peticiones con el token**
 import Auth from '@/services/Auth'; 
-// **Necesitarás un servicio para obtener las Unidades Educativas. Podría ser el mismo 'Auth' o uno nuevo.**
-// import UnidadEducativaService from '@/services/UnidadEducativaService'; 
 
 import { useRouter } from 'vue-router';
-const router = useRouter();
 
-const checkbox = ref(false);
+const router = useRouter();
+//const checkbox = ref(false);
 const form = ref({
     username: '4269776', //1895306
     password: '123456', //81720006
     sistema: 'UEGG',
-    codSie: ''
+    codSie: '',
+    idUE: ''
 });
 
 // --- Nuevas variables de estado para el Modal y Unidades Educativas ---
 const showModal = ref(false);
 const unidadesEducativas = ref<any[]>([]);          // Lista de unidades: [{ codigo_sie: 1234, nombre: 'UE X' }, ...]
 const selectedUnidad = ref<any | null>(null);
-//const loginToken = ref<string>(''); // Para almacenar el token temporalmente
-  const   tecnicoSIEval= ref<any | null>(null); 
+const tecnicoSIEval= ref<any | null>(null); 
 const existeCiAndCodSie= ref<any | null>(null); 
 
 // --- Función para almacenar la sesión y redirigir ---
@@ -39,7 +36,7 @@ const finalizeLogin = (sie: string, dependencia: string, username: string, typeU
     router.push('/'); 
 };
 
-const findMiembrosByCodSie = async () => {
+const xxfindMiembrosByCodSie = async () => {
   try {
     form.value.codSie = localStorage.getItem('codigo_sie') || '';
 
@@ -51,14 +48,17 @@ const findMiembrosByCodSie = async () => {
 
       if (existeCiAndCodSie.value.length >= 1) {
         localStorage.setItem('existeMiembro', 'true');
+        console.log('existeMiembro : ', localStorage.getItem('existeMiembro')); 
         localStorage.setItem('existeMiembroTipo', 'true');
        // localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
+          return true;
       } else {
         localStorage.setItem('existeMiembro', 'false');
+        console.log('existeMiembro : ', localStorage.getItem('existeMiembro')); 
         localStorage.setItem('existeMiembroTipo', JSON.stringify([{ id: 0 }]));
+           return false;
       }
-
-      return true;
+    
     } else {
       toast.error('No se encontró una miembro para la UE', {
         autoClose: 3000,
@@ -77,53 +77,12 @@ const findMiembrosByCodSie = async () => {
   }
 };
 
-// --- Función  para obtener Director y UE desde uegg_pcpa_unidad_educativa  ---
-const findUeByCiAndCodSie = async () => {
-  try {
-    form.value.codSie = localStorage.getItem('codigo_sie') || '';
-
-    const res = await ConvivenciaPacifica.findUeByCiAndCodSie(form.value);
-    console.log('Respuesta de findUeByCiAndCodSie →', res);
-
-    if (res.status === 200) {
-      existeCiAndCodSie.value = res.data || [];
-
-      if (existeCiAndCodSie.value.length >= 1) {
-        localStorage.setItem('existeEnBD', 'true');
-        localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
-         return true;
-      } else {
-        localStorage.setItem('existeEnBD', 'false');
-        localStorage.setItem('dataUE', JSON.stringify([{ id: 0 }]));
-          toast.error('No se encontró una UE registrada en base de datos local para el Director', {
-        autoClose: 5000,    position: toast.POSITION.TOP_RIGHT,
-      });
-         return false;
-      }
-
-      return true;
-    } else {
-      toast.error('No se encontró una UE para el Director', {
-        autoClose: 3000,    position: toast.POSITION.TOP_RIGHT,
-      });
-      return false;
-    }
-
-  } catch (error) {
-    console.error('❌ Error en findUeByCiAndCodSie:', error);
-    toast.error('Error de conexión con el servidor.', {
-      autoClose: 3000,
-      position: toast.POSITION.TOP_RIGHT,
-    });
-    return false;
-  }
-};
 
 // --- Función  para obtener tecnico SIE ---
 const fetchUsuarioTecnicoSIE = async () => {  
      const tecnico = await Auth.listUsuarioTecnicoSIE(form.value).then((res) => {
         if (res.status === 200) {
-            console.log('Auth.listUnidadesEducativasPorDirector res : ', res.data);    
+            console.log('Auth.listUsuarioTecnicoSIE res : ', res.data);    
             tecnicoSIEval.value = res.data.data|| [];  //  tecnico.data.data|| [];
              localStorage.setItem('existeEnBD','false');
              console.log('existeEnBD : ', localStorage.getItem('existeEnBD'));     
@@ -147,7 +106,7 @@ const fetchUsuarioTecnicoSIE = async () => {
             return false;
         }
     }).catch(() => {
-        toast.error('Error de conexión con el servidor.', {
+        toast.error('Error de conexión con el servidor. listUsuarioTecnicoSIE', {
             autoClose: 3000,
             position: toast.POSITION.TOP_RIGHT
         });
@@ -172,17 +131,21 @@ const fetchUnidadesEducativasPorDirector = async () => {
       if (unidadesEducativas.value.length > 0) {
         localStorage.setItem('codigo_sie', unidadesEducativas.value[0].codigo_sie);
       }
+      else{
+       localStorage.setItem('codigo_sie', '0');
 
-      // Esperamos correctamente la respuesta de findUeByCiAndCodSie
-      const byCiAndCodSie = await findUeByCiAndCodSie();
-      console.log('findUeByCiAndCodSie →', byCiAndCodSie);
-      console.log('existeEnBD →', localStorage.getItem('existeEnBD'));
-      console.log('user →', localStorage.getItem('user'));
-
-    await findMiembrosByCodSie();
-    
-       console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
+      }
    
+      form.value.idUE= localStorage.getItem('codigo_sie')|| ''; 
+      form.value.codSie = localStorage.getItem('codigo_sie')|| ''; 
+      // 1. Encontrar IDs críticos (idUE )
+      const byCiAndCodSie = await ConvivenciaPacifica.findUeByCiAndCodSieSetVariables(form.value)   
+      console.log('fetchUnidadesEducativasPorDirector  → byCiAndCodSie :', byCiAndCodSie);
+      //form.value.codSie = localStorage.getItem('codigo_sie') || '';
+
+      const miembrosByCiAndCodSie =  await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.codSie);//
+      console.log('fetchUnidadesEducativasPorDirector->existeMiembro : ', miembrosByCiAndCodSie,localStorage.getItem('existeMiembro'));  
+    
       // --- Si solo hay una unidad, login automático ---
       if (unidadesEducativas.value.length === 1) {
         const singleUnit = unidadesEducativas.value[0];
@@ -218,14 +181,6 @@ const fetchUnidadesEducativasPorDirector = async () => {
 };
 
 
-   // Ejemplo de datos simulados. Reemplazar con la llamada a la API 
-   // unidadesEducativas.value = [    // Para probar con una sola unidad,  comenta 2 de abajo:
-    //    { codigo_sie: '80730460', nombre: 'UE Don Bosco - SIE 80730460' },
-     //   { codigo_sie: '12345678', nombre: 'UE San Calixto - SIE 12345678' },
-     //   { codigo_sie: '98765432', nombre: 'UE Maria Auxiliadora - SIE 98765432' },
-   // ];   //  console.log(`Fetching unidades educativas with data: ${JSON.stringify(unidadesEducativas.value, null, 2)}`);
-
-
 // --- Función para manejar la selección de la Unidad Educativa ---
 const selectUnidadEducativa = async () => {
     if (selectedUnidad.value ) {
@@ -239,13 +194,18 @@ const selectUnidadEducativa = async () => {
         localStorage.setItem('dependencia',  'DIRECTOR');
         localStorage.setItem('permiso',  'write');
         showModal.value = false; // Cierra el modal
-        const byCiAndCodSie = await findUeByCiAndCodSie();
-     
-          console.log('existeEnBD', localStorage.getItem('existeEnBD')); 
-            console.log('user : ', localStorage.getItem('user')); 
 
-          await findMiembrosByCodSie();    
-          console.log('existeMiembro : ', localStorage.getItem('existeMiembro'));  
+              form.value.idUE= localStorage.getItem('codigo_sie')|| ''; //  ; 
+              form.value.codSie = localStorage.getItem('codigo_sie')|| ''; //  ;        
+      // 1. Encontrar IDs críticos (idUE y constId.value)
+      const ueByCiAndCodSie = await ConvivenciaPacifica.findUeByCiAndCodSieSetVariables(form.value)  
+       // const ueByCiAndCodSie = await findUeByCiAndCodSie();
+     
+        console.log('selectUnidadEducativa-> ueByCiAndCodSie', ueByCiAndCodSie); 
+         // console.log('user : ', localStorage.getItem('user')); 
+   //  form.value.codSie = localStorage.getItem('codigo_sie') || '';
+        const miembrosByCiAndCodSie = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.codSie);// await findMiembrosByCodSie();    
+        console.log('selectUnidadEducativa->existeMiembro : ', miembrosByCiAndCodSie,localStorage.getItem('existeMiembro'));  
    
         router.push('/'); // Redirige a la página principal
     } else {
@@ -255,6 +215,15 @@ const selectUnidadEducativa = async () => {
         });
     }
 };
+
+   // Ejemplo de datos simulados. Reemplazar con la llamada a la API 
+   // unidadesEducativas.value = [    // Para probar con una sola unidad,  comenta 2 de abajo:
+    //    { codigo_sie: '80730460', nombre: 'UE Don Bosco - SIE 80730460' },
+     //   { codigo_sie: '12345678', nombre: 'UE San Calixto - SIE 12345678' },
+     //   { codigo_sie: '98765432', nombre: 'UE Maria Auxiliadora - SIE 98765432' },
+   // ];   //  console.log(`Fetching unidades educativas with data: ${JSON.stringify(unidadesEducativas.value, null, 2)}`);
+
+
 // -------------------------------------------------------------------
 
 const submit = async (event: any) => {
@@ -300,6 +269,7 @@ const submit = async (event: any) => {
         });
     });*/
 };
+
 </script>
 
 <template>
@@ -379,4 +349,4 @@ const submit = async (event: any) => {
             </v-card-actions>
         </v-card>
     </v-dialog>
-    </template>
+</template>

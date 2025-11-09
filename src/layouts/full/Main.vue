@@ -16,7 +16,7 @@ const router = useRouter();
 
 const sidebarMenu = shallowRef(sidebarItems);
 const sDrawer = ref(true);
-console.log(router.currentRoute.value.path);
+console.log('Main router: ',router.currentRoute.value.path);
 const store = useNavbarStore();
 </script>
 
