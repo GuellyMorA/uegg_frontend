@@ -119,21 +119,6 @@ const form = ref<FormState>({
 });
 
 // ===== UTILIDADES =====
-const xxxcreateDefaultMiembro = (key: string, tipoId: number, status = false, nombre = ''): MiembroComision => ({
-    key,
-    tipoId,
-    status,
-    nombre,
-    id: null
-});
-
-const xxxcreateDefaultActividad = (key: string, tipoId: number, nombre: ActividadTipoItem | null = null, fecha = ''): Actividad => ({
-    key,
-    tipoId,
-    nombre,
-    fecha,
-    id: null
-});
 
 const formatFecha = (fecha: string): string => {
     if (!fecha) return '';
@@ -1140,3 +1125,11 @@ watch(
         </v-card>
     </v-dialog>
 </template>
+
+
+
+
+
+
+
+

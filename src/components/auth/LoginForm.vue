@@ -36,47 +36,6 @@ const finalizeLogin = (sie: string, dependencia: string, username: string, typeU
     router.push('/'); 
 };
 
-const xxfindMiembrosByCodSie = async () => {
-  try {
-    form.value.codSie = localStorage.getItem('codigo_sie') || '';
-
-    const res = await ConvivenciaPacifica.findMiembrosComisionConstruccion(form.value.codSie);
-    console.log('Respuesta de listMiembrosComision →', res);
-
-    if (res.status === 200) {
-      existeCiAndCodSie.value = res.data || [];
-
-      if (existeCiAndCodSie.value.length >= 1) {
-        localStorage.setItem('existeMiembro', 'true');
-        console.log('existeMiembro : ', localStorage.getItem('existeMiembro')); 
-        localStorage.setItem('existeMiembroTipo', 'true');
-       // localStorage.setItem('dataUE', JSON.stringify(existeCiAndCodSie.value));
-          return true;
-      } else {
-        localStorage.setItem('existeMiembro', 'false');
-        console.log('existeMiembro : ', localStorage.getItem('existeMiembro')); 
-        localStorage.setItem('existeMiembroTipo', JSON.stringify([{ id: 0 }]));
-           return false;
-      }
-    
-    } else {
-      toast.error('No se encontró una miembro para la UE', {
-        autoClose: 3000,
-        position: toast.POSITION.TOP_RIGHT,
-      });
-      return false;
-    }
-
-  } catch (error) {
-    console.error('❌ Error en listMiembrosComision:', error);
-    toast.error('Error de conexión con el servidor. listMiembrosComision', {
-      autoClose: 3000,
-      position: toast.POSITION.TOP_RIGHT,
-    });
-    return false;
-  }
-};
-
 
 // --- Función  para obtener tecnico SIE ---
 const fetchUsuarioTecnicoSIE = async () => {  
