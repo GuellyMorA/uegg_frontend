@@ -954,7 +954,7 @@ watch(
                         <v-container>
                             <v-row>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details :readonly="true"></v-text-field>
+                                    <v-text-field v-model="form.codSie"  label="SIE" required hide-details :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="8">
                                     <v-text-field v-model="form.unidadEducativa" :counter="10" label="Unidad Educativa" hide-details required :readonly="true"></v-text-field>

@@ -1379,7 +1379,6 @@ const uploadFile = async () => {
 */
 </script>
 
-
 <template>
     <v-row>
         <v-col cols="12">
@@ -1411,7 +1410,7 @@ const uploadFile = async () => {
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.sie" :counter="8" label="SIE" required hide-details  :readonly="true"></v-text-field>
+                                    <v-text-field v-model="form.codSie" :counter="8" label="SIE" required hide-details  :readonly="true"></v-text-field>
                                 </v-col>
                                 <v-col cols="12" md="8">
                                     <v-text-field v-model="form.unidadEducativa" label="Unidad Educativa" hide-details  :readonly="true"></v-text-field>

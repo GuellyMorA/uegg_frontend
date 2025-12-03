@@ -596,7 +596,7 @@ const xxxreset = () => {
                                     </div>
                                 </v-col>
                                 <v-col cols="12" md="4">
-                                    <v-text-field v-model="form.sie" :rules="sieRules" :counter="8" label="SIE" required hide-details
+                                    <v-text-field v-model="form.codSie" :rules="sieRules" :counter="8" label="SIE" required hide-details
                                         :readonly="true"></v-text-field>
                                 </v-col>
 
@@ -685,6 +685,7 @@ const xxxreset = () => {
                                     <v-text-field v-model="form.fecha" label="DD/MM/AAAA" @input="onDateInput1" placeholder="DD/MM/AAAA"
                                         hide-details required :disabled="isFormDisabled"></v-text-field>
                                 </v-col>
+    <!-- Diálogo de confirmación -->       
 
                                 <v-col cols="12" md="12">
                                     <v-dialog v-model="dialog" persistent width="auto">
@@ -713,7 +714,7 @@ const xxxreset = () => {
             </v-card>
         </v-col>
     </v-row>
-
+  <!-- Diálogo de nuevo registro -->
     <v-dialog v-model="dialogSave" persistent width="auto">
         <v-card>
             <v-card-title class="text-h5">Mensaje</v-card-title>
